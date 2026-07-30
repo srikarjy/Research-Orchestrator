@@ -1,0 +1,36 @@
+.confidence-ladder {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 80px;
+  background: var(--ink);
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  padding: 16px 8px;
+  gap: 4px;
+}
+
+.confidence-ladder__row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.confidence-ladder__band {
+  display: block;
+  height: 14px;
+  border-radius: 2px;
+  opacity: 0.35;
+}
+
+.confidence-ladder__band--literature,
+.confidence-ladder__band--protein,
+.confidence-ladder__band--clinical {
+  background: var(--signal);
+}
+
+.confidence-ladder__band--llm {
+  background: var(--muted);
+}
