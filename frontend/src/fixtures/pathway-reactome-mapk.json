@@ -1,0 +1,26 @@
+{
+  "pathwayId": "R-HSA-5673001",
+  "name": "MAPK family signaling cascades",
+  "description": "The MAPK signaling cascades mediate diverse cellular responses to extracellular stimuli",
+  "source": "Reactome",
+  "nodes": [
+    {"id": "R-HSA-5683057", "name": "RAF/MAP kinase cascade", "type": "pathway", "x": 150, "y": 100, "data": {"stId": "R-HSA-5683057"}},
+    {"id": "R-HSA-123456", "name": "BRAF phosphorylates MAP2K1", "type": "reaction", "x": 400, "y": 100, "data": {"stId": "R-HSA-123456"}},
+    {"id": "R-HSA-789012", "name": "BRAF [cytosol]", "type": "protein", "x": 400, "y": 250, "data": {"uniprot": "P15056", "compartment": "cytosol"}},
+    {"id": "R-HSA-789013", "name": "MAP2K1 [cytosol]", "type": "protein", "x": 600, "y": 250, "data": {"uniprot": "Q02750", "compartment": "cytosol"}},
+    {"id": "R-HSA-789014", "name": "MAPK1 [cytosol]", "type": "protein", "x": 800, "y": 250, "data": {"uniprot": "P28482", "compartment": "cytosol"}},
+    {"id": "R-HSA-789015", "name": "MAPK3 [cytosol]", "type": "protein", "x": 1000, "y": 250, "data": {"uniprot": "P27361", "compartment": "cytosol"}},
+    {"id": "R-HSA-789016", "name": "RAS [cytosol]", "type": "protein", "x": 200, "y": 400, "data": {"uniprot": "P01112", "compartment": "cytosol"}}
+  ],
+  "edges": [
+    {"source": "R-HSA-5683057", "target": "R-HSA-123456", "type": "catalysis", "label": "contains"},
+    {"source": "R-HSA-789012", "target": "R-HSA-123456", "type": "catalysis", "label": "catalyzes"},
+    {"source": "R-HSA-789013", "target": "R-HSA-123456", "type": "binding", "label": "substrate"},
+    {"source": "R-HSA-123456", "target": "R-HSA-789013", "type": "phosphorylation", "label": "pSer218/222"},
+    {"source": "R-HSA-789013", "target": "R-HSA-789014", "type": "phosphorylation", "label": "pThr202/Tyr204"},
+    {"source": "R-HSA-789013", "target": "R-HSA-789015", "type": "phosphorylation", "label": "pThr202/Tyr204"},
+    {"source": "R-HSA-789016", "target": "R-HSA-789012", "type": "activation", "label": "GTP-bound RAS"},
+    {"source": "R-HSA-789014", "target": "R-HSA-789015", "type": "binding", "label": "dimerization"}
+  ],
+  "imageUrl": "https://reactome.org/ContentService/data/diagram/R-HSA-5673001.png"
+}

@@ -32,3 +32,10 @@ export type ToolCallTrace = {
   retries: number;
   tokens?: number;
 };
+
+export type TimelineEvent = {
+  date: string;
+  label: string;
+  type: "discovery" | "trial_phase" | "approval" | "publication";
+  sourceId: string;
+};

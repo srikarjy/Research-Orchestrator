@@ -1,0 +1,34 @@
+{
+  "pathwayId": "hsa04010",
+  "name": "MAPK signaling pathway",
+  "description": "Mitogen-activated protein kinase signaling pathway",
+  "source": "KEGG",
+  "nodes": [
+    {"id": "hsa:673", "name": "BRAF", "type": "gene", "x": 200, "y": 150, "data": {"entrez": "673", "uniprot": "P15056"}},
+    {"id": "hsa:5604", "name": "MAP2K1", "type": "gene", "x": 400, "y": 150, "data": {"entrez": "5604", "uniprot": "Q02750"}},
+    {"id": "hsa:5594", "name": "MAPK1", "type": "gene", "x": 600, "y": 150, "data": {"entrez": "5594", "uniprot": "P28482"}},
+    {"id": "hsa:5595", "name": "MAPK3", "type": "gene", "x": 800, "y": 150, "data": {"entrez": "5595", "uniprot": "P27361"}},
+    {"id": "hsa:5894", "name": "RAF1", "type": "gene", "x": 100, "y": 300, "data": {"entrez": "5894", "uniprot": "P04049"}},
+    {"id": "hsa:3265", "name": "HRAS", "type": "gene", "x": 200, "y": 300, "data": {"entrez": "3265", "uniprot": "P01112"}},
+    {"id": "hsa:3845", "name": "KRAS", "type": "gene", "x": 400, "y": 300, "data": {"entrez": "3845", "uniprot": "P01116"}},
+    {"id": "hsa:4893", "name": "NRAS", "type": "gene", "x": 600, "y": 300, "data": {"entrez": "4893", "uniprot": "P01111"}},
+    {"id": "cpd:C00002", "name": "ATP", "type": "compound", "x": 100, "y": 450},
+    {"id": "cpd:C00008", "name": "ADP", "type": "compound", "x": 300, "y": 450},
+    {"id": "cpd:C00044", "name": "GTP", "type": "compound", "x": 500, "y": 450},
+    {"id": "cpd:C00035", "name": "GDP", "type": "compound", "x": 700, "y": 450}
+  ],
+  "edges": [
+    {"source": "hsa:3265", "target": "hsa:673", "type": "activation", "label": "GTP-bound"},
+    {"source": "hsa:3845", "target": "hsa:673", "type": "activation", "label": "GTP-bound"},
+    {"source": "hsa:4893", "target": "hsa:673", "type": "activation", "label": "GTP-bound"},
+    {"source": "hsa:673", "target": "hsa:5604", "type": "phosphorylation", "label": "pSer218/222"},
+    {"source": "hsa:5894", "target": "hsa:5604", "type": "phosphorylation", "label": "pSer218/222"},
+    {"source": "hsa:5604", "target": "hsa:5594", "type": "phosphorylation", "label": "pThr202/pTyr204"},
+    {"source": "hsa:5604", "target": "hsa:5595", "type": "phosphorylation", "label": "pThr202/pTyr204"},
+    {"source": "cpd:C00002", "target": "hsa:673", "type": "binding", "label": "ATP"},
+    {"source": "hsa:673", "target": "cpd:C00008", "type": "catalysis", "label": "ADP release"},
+    {"source": "cpd:C00044", "target": "hsa:3265", "type": "binding", "label": "GTP"},
+    {"source": "hsa:3265", "target": "cpd:C00035", "type": "catalysis", "label": "GDP release"}
+  ],
+  "imageUrl": "https://www.kegg.jp/kegg/pathway/hsa/hsa04010.png"
+}

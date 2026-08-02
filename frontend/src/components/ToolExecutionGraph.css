@@ -1,0 +1,75 @@
+.tool-execution-graph {
+  position: relative;
+  height: 300px;
+  margin: 24px 0;
+}
+
+.tool-execution-graph__svg {
+  width: 100%;
+  height: 100%;
+}
+
+.tool-execution-graph__label {
+  pointer-events: none;
+}
+
+.tool-execution-graph__panel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 280px;
+  height: 100%;
+  background: var(--bg);
+  border-left: 1px solid var(--muted);
+  padding: 16px;
+  font-family: var(--font-sans);
+  box-shadow: -4px 0 12px rgba(0, 0, 0, 0.08);
+  z-index: 10;
+}
+
+.tool-execution-graph__panel header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--muted);
+}
+
+.tool-execution-graph__panel h3 {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.tool-execution-graph__panel button {
+  background: none;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  color: var(--muted);
+  line-height: 1;
+}
+
+.tool-execution-graph__panel dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 8px 12px;
+  margin: 0;
+}
+
+.tool-execution-graph__panel dt {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.tool-execution-graph__panel dd {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--ink);
+}

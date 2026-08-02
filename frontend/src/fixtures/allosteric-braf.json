@@ -1,0 +1,38 @@
+{
+  "id": "EV-0043",
+  "claim": "Novel allosteric site on BRAF enables selective inhibition of V600E mutant without paradoxical activation.",
+  "confidence": {
+    "overall": 0.62,
+    "signals": {
+      "literature": 0.25,
+      "protein_evidence": 0.35,
+      "clinical_evidence": 0.15,
+      "llm_rating": 0.88
+    }
+  },
+  "sources": [
+    {
+      "id": "SRC-010",
+      "type": "paper",
+      "title": "Computational prediction of allosteric pockets in BRAF kinase domain",
+      "stance": "supports",
+      "refUrl": "https://pubmed.ncbi.nlm.nih.gov/example10",
+      "payload": {}
+    },
+    {
+      "id": "SRC-011",
+      "type": "paper",
+      "title": "Molecular dynamics simulation of BRAF V600E allosteric modulation",
+      "stance": "neutral",
+      "refUrl": "https://pubmed.ncbi.nlm.nih.gov/example11",
+      "payload": {}
+    }
+  ],
+  "toolCalls": [
+    { "tool": "PubMed", "category": "retriever", "latencyMs": 380, "cacheHit": false, "retries": 0, "tokens": 950 },
+    { "tool": "UniProt", "category": "retriever", "latencyMs": 150, "cacheHit": true, "retries": 0 },
+    { "tool": "Docking", "category": "analyzer", "latencyMs": 2100, "cacheHit": false, "retries": 0 },
+    { "tool": "Critic", "category": "analyzer", "latencyMs": 400, "cacheHit": false, "retries": 0, "tokens": 1100 },
+    { "tool": "StructureViewer", "category": "visualizer", "latencyMs": 85, "cacheHit": false, "retries": 0 }
+  ]
+}

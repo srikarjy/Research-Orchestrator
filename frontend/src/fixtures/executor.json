@@ -1,0 +1,110 @@
+{
+  "calendarEvents": [
+    {
+      "id": "cal-001",
+      "title": "Weekly Lab Meeting",
+      "start": "2026-08-01T10:00:00-07:00",
+      "end": "2026-08-01T11:00:00-07:00",
+      "source": "google",
+      "calendarId": "lab-team@company.com",
+      "meetingUrl": "https://meet.google.com/abc-def-ghi",
+      "attendees": ["pi@company.com", "postdoc1@company.com", "student2@company.com"]
+    },
+    {
+      "id": "cal-002",
+      "title": "BRAF V600E Docking Run",
+      "start": "2026-08-01T14:00:00-07:00",
+      "end": "2026-08-01T16:00:00-07:00",
+      "source": "workflow",
+      "calendarId": "workflow-engine",
+      "meetingUrl": ""
+    },
+    {
+      "id": "cal-003",
+      "title": "Clinical Data Review - Dr. Chen",
+      "start": "2026-08-02T09:30:00-07:00",
+      "end": "2026-08-02T10:15:00-07:00",
+      "source": "mac",
+      "calendarId": "personal",
+      "attendees": ["chen@hospital.org"]
+    },
+    {
+      "id": "cal-004",
+      "title": "Literature Sync (PubMed) - Weekly",
+      "start": "2026-08-03T06:00:00-07:00",
+      "end": "2026-08-03T06:30:00-07:00",
+      "source": "workflow",
+      "calendarId": "workflow-engine"
+    }
+  ],
+  "notifications": [
+    {
+      "id": "notif-001",
+      "type": "task_running",
+      "title": "Protein Stability Analysis",
+      "message": "Predicting ΔΔG for BRAF V600E mutation — step 3/5 (MD relaxation)",
+      "timestamp": "2026-08-01T08:23:12-07:00",
+      "read": false,
+      "relatedEvidenceId": "EV-0042",
+      "relatedToolCall": "ProteinStabilityPredictor"
+    },
+    {
+      "id": "notif-002",
+      "type": "review_required",
+      "title": "Human Review Required",
+      "message": "Critic flagged contradiction: PDB 4RZW shows DFG-in but 6MUK shows DFG-out for V600E. Confidence gated at 0.68.",
+      "timestamp": "2026-08-01T08:15:44-07:00",
+      "read": false,
+      "relatedEvidenceId": "EV-0042",
+      "actionUrl": "/evidence/EV-0042/contradictions"
+    },
+    {
+      "id": "notif-003",
+      "type": "task_completed",
+      "title": "PubMed Retrieval Complete",
+      "message": "Found 12 new papers on BRAF inhibitor resistance mechanisms. 3 high-confidence hits.",
+      "timestamp": "2026-08-01T07:52:10-07:00",
+      "read": true,
+      "relatedEvidenceId": "EV-0042",
+      "relatedToolCall": "PubMed"
+    },
+    {
+      "id": "notif-004",
+      "type": "calendar_conflict",
+      "title": "Calendar Conflict Detected",
+      "message": "Workflow 'Docking Run' overlaps with 'Weekly Lab Meeting' (2026-08-01 14:00-16:00). Reschedule?",
+      "timestamp": "2026-08-01T08:00:00-07:00",
+      "read": false,
+      "actionUrl": "/calendar/conflicts"
+    }
+  ],
+  "runningTasks": [
+    {
+      "id": "task-001",
+      "name": "Protein Stability Prediction (BRAF V600E)",
+      "startedAt": "2026-08-01T08:20:00-07:00",
+      "status": "running",
+      "progress": 0.6,
+      "currentStep": "MD relaxation (3/5)",
+      "evidenceId": "EV-0042"
+    },
+    {
+      "id": "task-002",
+      "name": "Docking: Vemurafenib → BRAF V600E",
+      "startedAt": "2026-08-01T08:22:00-07:00",
+      "status": "pending",
+      "progress": 0,
+      "currentStep": "Queued (awaiting GPU)",
+      "evidenceId": "EV-0042"
+    },
+    {
+      "id": "task-003",
+      "name": "Literature Contradiction Review",
+      "startedAt": "2026-08-01T08:15:00-07:00",
+      "status": "awaiting_review",
+      "progress": 1,
+      "currentStep": "Awaiting human decision",
+      "evidenceId": "EV-0042"
+    }
+  ]
+}

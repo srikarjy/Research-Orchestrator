@@ -1,0 +1,59 @@
+{
+  "id": "EV-EVAL-002",
+  "claim": "Novel allosteric inhibitor binds BRAF V600E with picomolar affinity and complete selectivity over wild-type BRAF.",
+  "confidence": {
+    "overall": 0.55,
+    "signals": {
+      "literature": 0.25,
+      "protein_evidence": 0.35,
+      "clinical_evidence": 0.15,
+      "llm_rating": 0.88
+    }
+  },
+  "sources": [
+    {
+      "id": "SRC-EVAL-010",
+      "type": "paper",
+      "title": "Computational prediction of allosteric pockets in BRAF kinase domain",
+      "stance": "supports",
+      "refUrl": "https://pubmed.ncbi.nlm.nih.gov/30123456",
+      "payload": {
+        "excerpt": "MD simulations identify a novel allosteric pocket near the αC-helix"
+      }
+    },
+    {
+      "id": "SRC-EVAL-011",
+      "type": "paper",
+      "title": "Molecular dynamics simulation of BRAF V600E allosteric modulation",
+      "stance": "neutral",
+      "refUrl": "https://pubmed.ncbi.nlm.nih.gov/30123457",
+      "payload": {
+        "excerpt": "Allosteric site predicted but no experimental validation of binding affinity"
+      }
+    }
+  ],
+  "toolCalls": [
+    { "tool": "PubMed", "category": "retriever", "latencyMs": 380, "cacheHit": false, "retries": 0, "tokens": 950 },
+    { "tool": "Docking", "category": "analyzer", "latencyMs": 2100, "cacheHit": false, "retries": 0 },
+    { "tool": "Critic", "category": "analyzer", "latencyMs": 400, "cacheHit": false, "retries": 0, "tokens": 1100 }
+  ],
+  "expected": {
+    "confidenceHeatmap": {
+      "literature": 0.25,
+      "protein_evidence": 0.35,
+      "clinical_evidence": 0.15,
+      "llm_rating": 0.88,
+      "overall": 0.55,
+      "highestSignal": "llm_rating",
+      "llmDeemphasized": true
+    },
+    "contradictionGraph": {
+      "supportsCount": 1,
+      "contradictsCount": 0,
+      "neutralCount": 1,
+      "contradictionScore": 0.0,
+      "supportsSources": ["SRC-EVAL-010"],
+      "contradictsSources": []
+    }
+  }
+}

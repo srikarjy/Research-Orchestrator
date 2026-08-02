@@ -1,4 +1,40 @@
-frontend/node_modules
-frontend/dist
-frontend/dist-ssr
-*.local
+# Binaries
+biolab-mcp-server/biolab-mcp-server
+workflow-engine/workflow-engine
+*.exe
+
+# Build outputs
+build/
+dist/
+*.out
+
+# Dependencies
+node_modules/
+vendor/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+npm-debug.log*
+
+# Testing
+coverage/
+.nyc_output/
+
+# Go
+*.test
+*.prof

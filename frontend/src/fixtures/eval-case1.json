@@ -1,0 +1,73 @@
+{
+  "id": "EV-EVAL-001",
+  "claim": "BRAF V600E mutation reduces binding affinity for vemurafenib by destabilizing the DFG-in conformation.",
+  "confidence": {
+    "overall": 0.78,
+    "signals": {
+      "literature": 0.92,
+      "protein_evidence": 0.75,
+      "clinical_evidence": 0.68,
+      "llm_rating": 0.80
+    }
+  },
+  "sources": [
+    {
+      "id": "SRC-EVAL-001",
+      "type": "paper",
+      "title": "Structural basis of BRAF V600E activation and altered inhibitor sensitivity",
+      "stance": "supports",
+      "refUrl": "https://pubmed.ncbi.nlm.nih.gov/24567890",
+      "payload": {
+        "excerpt": "V600E stabilizes the active conformation, reducing affinity for type I inhibitors by 50-fold"
+      }
+    },
+    {
+      "id": "SRC-EVAL-002",
+      "type": "protein_structure",
+      "title": "BRAF kinase domain V600E with vemurafenib (PDB 4RZW)",
+      "stance": "supports",
+      "payload": {
+        "pdbId": "4RZW",
+        "mutationResidue": { "chain": "A", "position": 600 },
+        "bindingPocket": { "chain": "A", "positions": [594, 595, 596, 597, 598, 599, 600, 601] },
+        "excerpt": "Electron density shows DFG-in conformation with vemurafenib bound"
+      }
+    },
+    {
+      "id": "SRC-EVAL-003",
+      "type": "protein_structure",
+      "title": "BRAF kinase domain V600E apo structure (PDB 6MUK)",
+      "stance": "contradicts",
+      "payload": {
+        "pdbId": "6MUK",
+        "mutationResidue": { "chain": "A", "position": 600 },
+        "bindingPocket": { "chain": "A", "positions": [594, 595, 596, 597, 598, 599, 600, 601] },
+        "excerpt": "Apo V600E adopts DFG-out conformation; no density for ATP-site ligand"
+      }
+    }
+  ],
+  "toolCalls": [
+    { "tool": "PubMed", "category": "retriever", "latencyMs": 420, "cacheHit": false, "retries": 0, "tokens": 1200 },
+    { "tool": "PDB", "category": "retriever", "latencyMs": 310, "cacheHit": false, "retries": 0 },
+    { "tool": "Critic", "category": "analyzer", "latencyMs": 300, "cacheHit": false, "retries": 0, "tokens": 800 }
+  ],
+  "expected": {
+    "confidenceHeatmap": {
+      "literature": 0.92,
+      "protein_evidence": 0.75,
+      "clinical_evidence": 0.68,
+      "llm_rating": 0.80,
+      "overall": 0.78,
+      "highestSignal": "literature",
+      "llmDeemphasized": true
+    },
+    "contradictionGraph": {
+      "supportsCount": 2,
+      "contradictsCount": 1,
+      "neutralCount": 0,
+      "contradictionScore": 0.33,
+      "supportsSources": ["SRC-EVAL-001", "SRC-EVAL-002"],
+      "contradictsSources": ["SRC-EVAL-003"]
+    }
+  }
+}
