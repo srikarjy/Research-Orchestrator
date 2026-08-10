@@ -6,24 +6,31 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
+	"github.com/gorilla/websocket"
 	"github.com/srikarjy/research-orchestrator/workflow-engine/internal/engine"
 	"github.com/srikarjy/research-orchestrator/workflow-engine/pkg/eventlog"
 	"go.uber.org/zap"
 )
+
+var upgrader = websocket.Upgrader{
+	CheckOrigin: func(r *http.Request) bool { return true },
+}
 
 type Server struct {
 	router  *mux.Router
 	eng     *engine.Engine
 	logger  *zap.Logger
 	store   eventlog.Store
+	wsClients map[string]map[*websocket.Conn]bool
 }
 
 func NewServer(eng *engine.Engine, store eventlog.Store, logger *zap.Logger) *Server {
 	s := &Server{
-		router: mux.NewRouter(),
-		eng:    eng,
-		logger: logger,
-		store:  store,
+		router:    mux.NewRouter(),
+		eng:       eng,
+		logger:    logger,
+		store:     store,
+		wsClients: make(map[string]map[*websocket.Conn]bool),
 	}
 	s.routes()
 	return s
@@ -41,6 +48,7 @@ func (s *Server) routes() {
 	s.router.HandleFunc("/api/v1/workflows/{id}/execute", s.executeWorkflow).Methods("POST")
 	s.router.HandleFunc("/api/v1/workflows/{id}/events", s.getWorkflowEvents).Methods("GET")
 	s.router.HandleFunc("/api/v1/workflows/{id}/steps/{stepId}", s.getStep).Methods("GET")
+	s.router.HandleFunc("/api/v1/workflows/{id}/ws", s.handleWorkflowWS).Methods("GET")
 	
 	// Executor endpoints (calendar, notifications, running tasks)
 	s.router.HandleFunc("/api/v1/executor/calendar", s.getCalendarEvents).Methods("GET")
@@ -244,4 +252,71 @@ func (s *Server) respond(w http.ResponseWriter, status int, data interface{}) {
 
 func (s *Server) error(w http.ResponseWriter, status int, msg string) {
 	s.respond(w, status, map[string]string{"error": msg})
+}
+
+// handleWorkflowWS handles WebSocket connections for real-time workflow events
+func (s *Server) handleWorkflowWS(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	workflowID := vars["id"]
+	
+	conn, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		s.logger.Error("WebSocket upgrade failed", zap.Error(err))
+		return
+	}
+	defer conn.Close()
+	
+	// Register client
+	if s.wsClients[workflowID] == nil {
+		s.wsClients[workflowID] = make(map[*websocket.Conn]bool)
+	}
+	s.wsClients[workflowID][conn] = true
+	defer func() {
+		delete(s.wsClients[workflowID], conn)
+		if len(s.wsClients[workflowID]) == 0 {
+			delete(s.wsClients, workflowID)
+		}
+	}()
+	
+	// Send initial workflow state
+	wf, err := s.eng.GetWorkflow(workflowID)
+	if err == nil {
+		conn.WriteJSON(map[string]interface{}{
+			"type": "workflow_state",
+			"data": wf,
+		})
+	}
+	
+	// Send existing events
+	events, _ := s.eng.GetWorkflowEvents(workflowID)
+	for _, evt := range events {
+		conn.WriteJSON(map[string]interface{}{
+			"type": "event",
+			"data": evt,
+		})
+	}
+	
+	// Keep connection alive and listen for close
+	for {
+		_, _, err := conn.ReadMessage()
+		if err != nil {
+			break
+		}
+	}
+}
+
+// BroadcastEvent sends an event to all WebSocket clients for a workflow
+func (s *Server) BroadcastEvent(workflowID string, event *eventlog.Event) {
+	clients := s.wsClients[workflowID]
+	for conn := range clients {
+		err := conn.WriteJSON(map[string]interface{}{
+			"type": "event",
+			"data": event,
+		})
+		if err != nil {
+			s.logger.Error("WebSocket write failed", zap.Error(err))
+			conn.Close()
+			delete(s.wsClients[workflowID], conn)
+		}
+	}
 }

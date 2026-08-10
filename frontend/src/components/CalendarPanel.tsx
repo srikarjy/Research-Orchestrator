@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useExecutorData } from "../api/hooks";
-import type { CalendarEvent, Notification, RunningTask } from "../types/executor";
+import type { CalendarEvent, Notification, RunningTask } from "../types/api";
 import "./CalendarPanel.css";
 
 const TYPE_ICONS: Record<Notification["type"], string> = {
@@ -19,7 +19,7 @@ const TYPE_COLORS: Record<Notification["type"], string> = {
   calendar_conflict: "var(--alert)",
 };
 
-const SOURCE_COLORS: Record<CalendarEvent["source"], string> = {
+const SOURCE_COLORS: Record<string, string> = {
   google: "#4285F4",
   mac: "#007AFF",
   workflow: "var(--signal)",

@@ -1,0 +1,24 @@
+{
+  "id": "eval-kras-g12c-resistance",
+  "query": "KRAS G12C inhibitor resistance mechanisms",
+  "expected": {
+    "min_confidence": 0.5,
+    "required_sources": ["PubMed", "ChEMBL"],
+    "forbidden_sources": [],
+    "expected_stances": {
+      "pubmed-1": "supports",
+      "chembl-kras": "supports"
+    },
+    "max_duration_ms": 60000
+  },
+  "ground_truth": {
+    "claim": "KRAS G12C inhibitors face resistance via multiple mechanisms",
+    "supporting_evidence": [
+      "PubMed:34552002 - Resistance via KRAS amplification, NRAS mutations",
+      "ChEMBL:CHEMBL4297588 - Sotorasib binding data"
+    ],
+    "contradicting_evidence": [],
+    "correct_stance": "supports",
+    "confidence_range": [0.5, 0.85]
+  }
+}

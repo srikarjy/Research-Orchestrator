@@ -1,0 +1,124 @@
+version: '3.8'
+
+services:
+  # ==========================================
+  # UNIFIED PLATFORM: AssayOS Gateway
+  # Single entry point for all three planes
+  # ==========================================
+  assayos:
+    build:
+      context: .
+      dockerfile: assayos/Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - ENVIRONMENT=development
+      - SERVER_PORT=8080
+      - ASSAYOS_DATABASE_DSN=postgres://assayos:assayos@postgres:5432/assayos?sslmode=disable
+      - ASSAYOS_REDIS_ADDR=redis:6379
+      - ASSAYOS_WORKFLOWS_ENABLED=true
+      - ASSAYOS_BIOLAB_ENABLED=true
+      - ASSAYOS_ALETHEIA_ENABLED=true
+      - ASSAYOS_ALETHEIA_ENDPOINT=http://aletheia:8000
+      - ASSAYOS_LOG_LEVEL=info
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      aletheia:
+        condition: service_healthy
+    networks:
+      - research-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ==========================================
+  # PLANE 1: REASONING (Aletheia - LangGraph)
+  # ==========================================
+  aletheia:
+    build:
+      context: ./aletheia
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - WORKFLOW_ENGINE_URL=http://assayos:8080
+      - BIOLAB_MCP_URL=http://assayos:8080
+      - PYTHONUNBUFFERED=1
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - research-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ==========================================
+  # INFRASTRUCTURE
+  # ==========================================
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_USER=assayos
+      - POSTGRES_PASSWORD=assayos
+      - POSTGRES_DB=assayos
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - research-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U assayos -d assayos"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - research-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # ==========================================
+  # UI: React Frontend
+  # ==========================================
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_BASE=http://assayos:8080
+      - VITE_ALETHEIA_BASE=http://aletheia:8000
+    depends_on:
+      assayos:
+        condition: service_healthy
+    networks:
+      - research-net
+
+networks:
+  research-net:
+    driver: bridge
+
+volumes:
+  postgres-data:
+  redis-data:

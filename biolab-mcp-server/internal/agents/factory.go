@@ -43,7 +43,7 @@ func (f *AgentFactory) CreateAllAgents() ([]Agent, error) {
 		ID:          AgentResearcher,
 		Name:        "Literature Researcher",
 		Description: "Searches literature databases, retrieves evidence, synthesizes findings",
-		Capabilities: []string{"research", "literature_search", "evidence_retrieval", "synthesis"},
+		Capabilities: []string{"research", "literature_search", "evidence_retrieval", "synthesis", "synthesize"},
 		MaxRetries:  3,
 		Timeout:     10 * time.Minute,
 	}, f.msgBus, f.toolRegistry)
@@ -53,7 +53,7 @@ func (f *AgentFactory) CreateAllAgents() ([]Agent, error) {
 		ID:          AgentExecutor,
 		Name:        "Experiment Executor",
 		Description: "Executes computational experiments, runs simulations, manages wet-lab protocols",
-		Capabilities: []string{"compute", "experiment", "docking", "md_simulation", "stability_prediction", "wetlab_protocol"},
+		Capabilities: []string{"compute", "experiment", "docking", "md_simulation", "stability_prediction", "wetlab_protocol", "analyze"},
 		MaxRetries:  2,
 		Timeout:     60 * time.Minute,
 	}, f.msgBus, f.sandbox)
@@ -68,6 +68,16 @@ func (f *AgentFactory) CreateAllAgents() ([]Agent, error) {
 		Timeout:     5 * time.Minute,
 	}, f.msgBus)
 	agents = append(agents, validator)
+
+	critic := NewCriticAgentWrapper(AgentConfig{
+		ID:          "critic",
+		Name:        "Evidence Critic",
+		Description: "Evaluates evidence quality, finds contradictions, assigns stances",
+		Capabilities: []string{"critique", "evidence_analysis", "contradiction_detection"},
+		MaxRetries:  3,
+		Timeout:     5 * time.Minute,
+	}, f.msgBus)
+	agents = append(agents, critic)
 
 	notifier := NewNotifierAgent(AgentConfig{
 		ID:          AgentNotifier,

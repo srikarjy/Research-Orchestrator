@@ -46,6 +46,9 @@ func main() {
 	// Create API server
 	server := api.NewServer(eng, store, logger)
 
+	// Set event callback for WebSocket broadcasting
+	eng.SetEventCallback(server.BroadcastEvent)
+
 	// HTTP server
 	addr := getEnv("PORT", "8080")
 	httpServer := &http.Server{

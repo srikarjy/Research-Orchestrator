@@ -1,0 +1,26 @@
+{
+  "id": "eval-egfr-contradiction",
+  "query": "EGFR exon 19 deletion vs T790M resistance to osimertinib",
+  "expected": {
+    "min_confidence": 0.5,
+    "required_sources": ["PubMed", "UniProt"],
+    "forbidden_sources": [],
+    "expected_stances": {
+      "pubmed-ex19del": "supports",
+      "pubmed-t790m": "contradicts"
+    },
+    "max_duration_ms": 60000
+  },
+  "ground_truth": {
+    "claim": "EGFR exon 19 deletion sensitizes to osimertinib while T790M confers resistance",
+    "supporting_evidence": [
+      "PubMed:26611633 - Ex19del sensitive to osimertinib",
+      "PubMed:28178228 - T790M causes resistance to first-gen TKIs but osimertinib overcomes"
+    ],
+    "contradicting_evidence": [
+      "PubMed:30989356 - Acquired T790M+C797S causes osimertinib resistance"
+    ],
+    "correct_stance": "neutral",
+    "confidence_range": [0.4, 0.8]
+  }
+}

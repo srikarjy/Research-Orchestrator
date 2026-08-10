@@ -62,9 +62,10 @@ type StepExecutor interface {
 }
 
 type Engine struct {
-	store     eventlog.Store
-	executors map[string]StepExecutor
-	workflows map[string]*Workflow
+	store       eventlog.Store
+	executors   map[string]StepExecutor
+	workflows   map[string]*Workflow
+	eventCallback func(string, *eventlog.Event)
 }
 
 func NewEngine(store eventlog.Store) *Engine {
@@ -73,6 +74,10 @@ func NewEngine(store eventlog.Store) *Engine {
 		executors: make(map[string]StepExecutor),
 		workflows: make(map[string]*Workflow),
 	}
+}
+
+func (e *Engine) SetEventCallback(callback func(string, *eventlog.Event)) {
+	e.eventCallback = callback
 }
 
 func (e *Engine) RegisterExecutor(executor StepExecutor) {
@@ -104,12 +109,22 @@ func (e *Engine) CreateWorkflow(ctx context.Context, name, query string, steps [
 		"query": query,
 		"name":  name,
 	}, "")
-	if err := e.store.Append(event); err != nil {
+	if err := e.appendEvent(event); err != nil {
 		return nil, err
 	}
 
 	e.workflows[wf.ID] = wf
 	return wf, nil
+}
+
+func (e *Engine) appendEvent(event *eventlog.Event) error {
+	if err := e.store.Append(event); err != nil {
+		return err
+	}
+	if e.eventCallback != nil {
+		e.eventCallback(event.WorkflowID, event)
+	}
+	return nil
 }
 
 func (e *Engine) ExecuteWorkflow(ctx context.Context, workflowID string) error {
@@ -161,7 +176,7 @@ func (e *Engine) ExecuteWorkflow(ctx context.Context, workflowID string) error {
 	event := eventlog.NewEvent(wf.ID, "", eventlog.EventTypeWorkflowCompleted, map[string]interface{}{
 		"status": "completed",
 	}, "")
-	return e.store.Append(event)
+	return e.appendEvent(event)
 }
 
 func (e *Engine) executeStep(ctx context.Context, wf *Workflow, step *Step) error {
@@ -190,7 +205,7 @@ func (e *Engine) executeStep(ctx context.Context, wf *Workflow, step *Step) erro
 		"tool": step.Tool,
 		"input": step.Input,
 	}, step.IdempotencyKey)
-	if err := e.store.Append(startEvent); err != nil {
+	if err := e.appendEvent(startEvent); err != nil {
 		if err == eventlog.ErrDuplicateDedupKey {
 			// Already started, check if completed
 			return e.checkStepCompletion(ctx, wf, step)
@@ -211,12 +226,12 @@ func (e *Engine) executeStep(ctx context.Context, wf *Workflow, step *Step) erro
 		if step.Retries > step.MaxRetries {
 			step.Status = StepStatusFailed
 			step.Error = err.Error()
-			failEvent := eventlog.NewEvent(wf.ID, step.ID, eventlog.EventTypeStepFailed, map[string]interface{}{
-				"tool": step.Tool,
-				"error": err.Error(),
-				"retries": step.Retries,
-			}, step.IdempotencyKey)
-			e.store.Append(failEvent)
+failEvent := eventlog.NewEvent(wf.ID, step.ID, eventlog.EventTypeStepFailed, map[string]interface{}{
+			"tool": step.Tool,
+			"error": err.Error(),
+			"retries": step.Retries,
+		}, step.IdempotencyKey)
+		e.appendEvent(failEvent)
 			return ErrMaxRetriesExceeded
 		}
 		
@@ -225,7 +240,7 @@ func (e *Engine) executeStep(ctx context.Context, wf *Workflow, step *Step) erro
 			"attempt": step.Retries,
 			"error": err.Error(),
 		}, step.IdempotencyKey)
-		e.store.Append(retryEvent)
+		e.appendEvent(retryEvent)
 		return e.executeStep(ctx, wf, step) // Retry
 	}
 
@@ -251,7 +266,7 @@ func (e *Engine) completeStep(ctx context.Context, wf *Workflow, step *Step, out
 		"retries": step.Retries,
 	}, step.IdempotencyKey)
 	
-	return e.store.Append(completeEvent)
+	return e.appendEvent(completeEvent)
 }
 
 func (e *Engine) checkStepCompletion(ctx context.Context, wf *Workflow, step *Step) error {

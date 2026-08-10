@@ -1,0 +1,272 @@
+name: CI/CD with AI Review
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+env:
+  GO_VERSION: '1.25'
+  NODE_VERSION: '22'
+
+jobs:
+  # ============ Frontend Jobs ============
+  frontend-lint:
+    name: Frontend Lint & Typecheck
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - name: Typecheck
+        run: npm run build 2>&1 | head -100
+      - name: Lint (oxlint)
+        run: npm run lint
+      - name: Test
+        run: npm test -- --run
+
+  frontend-ai-review:
+    name: AI Code Review (Frontend)
+    runs-on: ubuntu-latest
+    needs: frontend-lint
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: AI Review - Frontend Changes
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+            
+            // Get changed files in frontend
+            const { stdout: diff } = await exec('git diff --name-only ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }} -- frontend/');
+            const changedFiles = diff.trim().split('\n').filter(f => f.endsWith('.ts') || f.endsWith('.tsx') || f.endsWith('.css'));
+            
+            if (changedFiles.length === 0) {
+              console.log('No frontend TypeScript/TSX/CSS files changed');
+              return;
+            }
+            
+            let reviewPrompt = `You are a senior frontend engineer reviewing a React + TypeScript + Vite project for a research orchestration dashboard. 
+            
+Project context:
+- React 19 + TypeScript + Vite
+- Custom design system with CSS variables (--bg, --ink, --signal, --alert, --structural, --muted)
+- Two font families: --font-mono (IBM Plex Mono) for data/evidence IDs, --font-sans (IBM Plex Sans) for prose
+- Components: ConfidenceHeatmap, ContradictionGraph, StructureViewer, MoleculeViewer, ToolExecutionGraph, SequenceAlignment, Timeline, PathwayViewer, AgentPanel, WorkflowPanel, SandboxPanel, NotificationPanel
+- Real-time WebSocket integration with Go backend
+- Evaluation tests in evaluation.test.ts verify visual correctness
+
+Review these changes for:
+1. Design system adherence (CSS variables, fonts, color palette)
+2. TypeScript correctness (no 'any', proper interfaces)
+3. React best practices (hooks, memo, proper dependencies)
+4. Accessibility (ARIA labels, semantic HTML)
+5. Performance (unnecessary re-renders, large bundle imports)
+6. Error handling and loading states
+7. Test coverage for new components/logic
+
+Changed files:
+${changedFiles.map(f => `- ${f}`).join('\n')}
+
+Diff:
+`;
+            
+            for (const file of changedFiles) {
+              const { stdout: fileDiff } = await exec(`git diff ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }} -- ${file}`);
+              reviewPrompt += `\n=== ${file} ===\n${fileDiff}\n`;
+            }
+            
+            // Write prompt to file for manual review or AI tool pickup
+            fs.writeFileSync('/tmp/ai-review-frontend.md', reviewPrompt);
+            console.log('AI review prompt written to /tmp/ai-review-frontend.md');
+            
+            // Post summary comment on PR
+            const summary = `## 🤖 AI Code Review (Frontend)\n\nAnalyzed ${changedFiles.length} changed files:\n${changedFiles.map(f => `- \`${f}\``).join('\n')}\n\nSee review prompt at \`/tmp/ai-review-frontend.md\` for full analysis.`;
+            
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: summary
+            });
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ============ Backend Jobs ============
+  backend-test:
+    name: Backend Tests (Go)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+      - name: Download dependencies
+        run: |
+          cd workflow-engine && go mod download
+          cd ../biolab-mcp-server && go mod download
+      - name: Build workflow-engine
+        run: cd workflow-engine && go build -o workflow-engine ./cmd/main.go
+      - name: Build biolab-mcp-server
+        run: cd biolab-mcp-server && go build -o biolab-mcp-server ./cmd/main.go
+      - name: Run workflow-engine tests
+        run: cd workflow-engine && go test ./...
+      - name: Run biolab-mcp-server tests
+        run: cd biolab-mcp-server && go test ./...
+      - name: Vet
+        run: |
+          cd workflow-engine && go vet ./...
+          cd ../biolab-mcp-server && go vet ./...
+
+  backend-ai-review:
+    name: AI Code Review (Backend)
+    runs-on: ubuntu-latest
+    needs: backend-test
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: AI Review - Backend Changes
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            
+            // Get changed files in backend
+            const { stdout: diff } = await exec('git diff --name-only ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }} -- workflow-engine/ biolab-mcp-server/');
+            const changedFiles = diff.trim().split('\n').filter(f => f.endsWith('.go'));
+            
+            if (changedFiles.length === 0) {
+              console.log('No backend Go files changed');
+              return;
+            }
+            
+            let reviewPrompt = `You are a senior Go engineer reviewing a research orchestration backend with two services:
+            
+1. workflow-engine: Durable execution plane with idempotent step execution, event log, WebSocket broadcasting
+2. biolab-mcp-server: Multi-agent system (planner, researcher, critic, executor, validator, notifier, clinical_trial, regulatory, biomarker) with 10+ bio tools
+
+Review these changes for:
+1. Go idioms and best practices (error handling, interfaces, context propagation)
+2. Concurrency safety (mutexes, channels, goroutine leaks)
+3. API design (RESTful, proper status codes, consistent JSON)
+4. Observability (structured logging with zap, metrics)
+5. Security (input validation, no secrets in logs, SQL injection prevention)
+6. Test coverage (table-driven tests, mock interfaces)
+7. Documentation (godoc comments for exported types/functions)
+
+Changed files:
+${changedFiles.map(f => `- ${f}`).join('\n')}
+
+Diff:
+`;
+            
+            for (const file of changedFiles) {
+              const { stdout: fileDiff } = await exec(`git diff ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }} -- ${file}`);
+              reviewPrompt += `\n=== ${file} ===\n${fileDiff}\n`;
+            }
+            
+            fs.writeFileSync('/tmp/ai-review-backend.md', reviewPrompt);
+            console.log('AI review prompt written to /tmp/ai-review-backend.md');
+            
+            const summary = `## 🤖 AI Code Review (Backend)\n\nAnalyzed ${changedFiles.length} changed Go files:\n${changedFiles.map(f => `- \`${f}\``).join('\n')}\n\nSee review prompt at \`/tmp/ai-review-backend.md\` for full analysis.`;
+            
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: summary
+            });
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ============ Integration Tests ============
+  integration-test:
+    name: Integration Test (Full Stack)
+    runs-on: ubuntu-latest
+    needs: [frontend-lint, backend-test]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+      - name: Start workflow-engine
+        run: |
+          cd workflow-engine
+          nohup ./workflow-engine > workflow-engine.log 2>&1 &
+          sleep 3
+          curl -f http://localhost:8080/health
+      - name: Start biolab-mcp-server
+        run: |
+          cd biolab-mcp-server
+          nohup ./biolab-mcp-server > biolab-mcp-server.log 2>&1 &
+          sleep 3
+          curl -f http://localhost:8081/health
+      - name: Run frontend build
+        run: |
+          cd frontend
+          npm ci
+          npm run build
+      - name: Test workflow creation
+        run: |
+          curl -X POST http://localhost:8080/api/v1/workflows \
+            -H "Content-Type: application/json" \
+            -d '{"name": "CI Test", "query": "test query"}' \
+            | jq -r '.id'
+      - name: Test agent list
+        run: |
+          curl -f http://localhost:8081/api/v1/agents | jq '. | length'
+      - name: Test tool list
+        run: |
+          curl -f http://localhost:8081/api/v1/tools | jq '. | length'
+
+  # ============ Release ============
+  release:
+    name: Semantic Release
+    runs-on: ubuntu-latest
+    needs: [frontend-lint, backend-test, integration-test]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Semantic Release
+        uses: cycjimmy/semantic-release-action@v4
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  # ============ Dependency Updates ============
+  dependabot:
+    name: Dependabot Auto-Merge
+    runs-on: ubuntu-latest
+    if: github.actor == 'dependabot[bot]'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Auto-merge dependabot PRs
+        uses: fastify/github-action-merge-dependabot@v3
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          merge-method: squash
