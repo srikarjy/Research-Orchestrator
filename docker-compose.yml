@@ -2,32 +2,33 @@ version: '3.8'
 
 services:
   # ==========================================
-  # UNIFIED PLATFORM: AssayOS Gateway
-  # Single entry point for all three planes
+  # ORCHESTRATOR: Workflow Engine + Planner + API Gateway
   # ==========================================
-  assayos:
+  orchestrator:
     build:
       context: .
-      dockerfile: assayos/Dockerfile
+      dockerfile: orchestrator/Dockerfile
     ports:
       - "8080:8080"
     environment:
       - ENVIRONMENT=development
       - SERVER_PORT=8080
-      - ASSAYOS_DATABASE_DSN=postgres://assayos:assayos@postgres:5432/assayos?sslmode=disable
-      - ASSAYOS_REDIS_ADDR=redis:6379
-      - ASSAYOS_WORKFLOWS_ENABLED=true
-      - ASSAYOS_BIOLAB_ENABLED=true
-      - ASSAYOS_ALETHEIA_ENABLED=true
-      - ASSAYOS_ALETHEIA_ENDPOINT=http://aletheia:8000
-      - ASSAYOS_LOG_LEVEL=info
+      - ORCH_DATABASE_DSN=postgres://orchestrator:orchestrator@postgres:5432/orchestrator?sslmode=disable
+      - ORCH_REDIS_ADDR=redis:6379
+      - ORCH_BIOLAB_MCP_URL=http://biolab-mcp:8081
+      - ORCH_LOG_LEVEL=info
+      - ORCH_WORKFLOW_ENGINE_DSN=postgres://workflow:workflow@postgres:5432/workflow?sslmode=disable
+      - ORCH_WORKFLOW_ENGINE_STREAM=workflow-steps
+      - ORCH_WORKFLOW_ENGINE_GROUP=workers
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
-      aletheia:
+      biolab-mcp:
         condition: service_healthy
+      workflow-engine-migrate:
+        condition: service_completed_successfully
     networks:
       - research-net
     healthcheck:
@@ -37,18 +38,17 @@ services:
       retries: 5
 
   # ==========================================
-  # PLANE 1: REASONING (Aletheia - LangGraph)
+  # BIOLAB MCP: Real Tools (PubMed, UniProt, PDB, FoldX, Vina, Critic)
   # ==========================================
-  aletheia:
+  biolab-mcp:
     build:
-      context: ./aletheia
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: biolab-mcp-server/Dockerfile
     ports:
-      - "8000:8000"
+      - "8081:8081"
     environment:
-      - WORKFLOW_ENGINE_URL=http://assayos:8080
-      - BIOLAB_MCP_URL=http://assayos:8080
-      - PYTHONUNBUFFERED=1
+      - USE_REAL_APIS=true
+      - PUBMED_API_KEY=
     depends_on:
       postgres:
         condition: service_healthy
@@ -57,10 +57,52 @@ services:
     networks:
       - research-net
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8081/health"]
       interval: 10s
       timeout: 5s
       retries: 5
+
+  # ==========================================
+  # DURABLE EXECUTION: workflow-Engine (real repo, git submodule at
+  # ./workflow-engine — see deploy/workflow-engine.Dockerfile). Shares this
+  # compose's postgres+redis rather than the standalone repo's own
+  # docker-compose.yml pair, so orchestrator's wfengine client and this
+  # worker are actually talking to the same durable state.
+  # ==========================================
+  workflow-engine-migrate:
+    build:
+      context: .
+      dockerfile: deploy/workflow-engine.Dockerfile
+    entrypoint: ["./migrate"]
+    command: ["up"]
+    environment:
+      - DATABASE_URL=postgres://workflow:workflow@postgres:5432/workflow?sslmode=disable
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - research-net
+    restart: "no"
+
+  workflow-engine-worker:
+    build:
+      context: .
+      dockerfile: deploy/workflow-engine.Dockerfile
+    command:
+      - "-postgres=postgres://workflow:workflow@postgres:5432/workflow?sslmode=disable"
+      - "-redis=redis:6379"
+      - "-stream=workflow-steps"
+      - "-group=workers"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      workflow-engine-migrate:
+        condition: service_completed_successfully
+    networks:
+      - research-net
+    restart: unless-stopped
 
   # ==========================================
   # INFRASTRUCTURE
@@ -68,17 +110,18 @@ services:
   postgres:
     image: postgres:16-alpine
     environment:
-      - POSTGRES_USER=assayos
-      - POSTGRES_PASSWORD=assayos
-      - POSTGRES_DB=assayos
+      - POSTGRES_USER=orchestrator
+      - POSTGRES_PASSWORD=orchestrator
+      - POSTGRES_DB=orchestrator
     ports:
       - "5434:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
+      - ./deploy/postgres-init:/docker-entrypoint-initdb.d:ro
     networks:
       - research-net
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U assayos -d assayos"]
+      test: ["CMD-SHELL", "pg_isready -U orchestrator -d orchestrator"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -107,10 +150,9 @@ services:
     ports:
       - "5173:5173"
     environment:
-      - VITE_API_BASE=http://assayos:8080
-      - VITE_ALETHEIA_BASE=http://aletheia:8000
+      - VITE_API_BASE=http://orchestrator:8080
     depends_on:
-      assayos:
+      orchestrator:
         condition: service_healthy
     networks:
       - research-net
