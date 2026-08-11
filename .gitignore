@@ -1,6 +1,7 @@
 # Binaries
 biolab-mcp-server/biolab-mcp-server
 workflow-engine/workflow-engine
+orchestrator/orchestrator
 *.exe
 
 # Build outputs
