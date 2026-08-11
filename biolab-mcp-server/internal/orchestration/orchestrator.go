@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/srikarjy/research-orchestrator/biolab-mcp-server/internal/reasoning"
-	"github.com/srikarjy/research-orchestrator/biolab-mcp-server/internal/tools/retrievers"
-	"github.com/srikarjy/research-orchestrator/biolab-mcp-server/internal/tools/retrievers/real"
+	"github.com/srikarjy/research-orchestrator/biolab-mcp-server/pkg/tools/retrievers"
+	"github.com/srikarjy/research-orchestrator/biolab-mcp-server/pkg/tools/retrievers/real"
 )
 
 type OrchestrationConfig struct {

@@ -5,10 +5,12 @@ WORKDIR /app
 
 RUN apk add --no-cache git make
 
-COPY go.mod go.sum ./
+# Build from biolab-mcp-server module context
+WORKDIR /app/biolab-mcp-server
+COPY biolab-mcp-server/go.mod biolab-mcp-server/go.sum ./
 RUN go mod download
 
-COPY . .
+COPY biolab-mcp-server/ ./
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o biolab-mcp-server ./cmd/main.go
 
 FROM alpine:3.20
@@ -17,7 +19,7 @@ RUN apk add --no-cache curl ca-certificates
 
 WORKDIR /app
 
-COPY --from=builder /app/biolab-mcp-server .
+COPY --from=builder /app/biolab-mcp-server/biolab-mcp-server .
 
 # Create sandbox directory
 RUN mkdir -p /tmp/research-sandbox

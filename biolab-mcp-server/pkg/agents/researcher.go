@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/srikarjy/research-orchestrator/biolab-mcp-server/internal/mcp"
+	"github.com/srikarjy/research-orchestrator/biolab-mcp-server/pkg/mcp"
 )
 
 type ResearcherAgent struct {

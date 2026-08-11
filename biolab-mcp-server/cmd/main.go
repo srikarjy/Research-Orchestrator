@@ -12,13 +12,14 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
 	"github.com/google/uuid"
-	"github.com/srikarjy/research-orchestrator/biolab-mcp-server/internal/agents"
-	"github.com/srikarjy/research-orchestrator/biolab-mcp-server/internal/mcp"
-	"github.com/srikarjy/research-orchestrator/biolab-mcp-server/internal/sandbox"
-	"github.com/srikarjy/research-orchestrator/biolab-mcp-server/internal/shared"
-	"github.com/srikarjy/research-orchestrator/biolab-mcp-server/internal/tools/analyzers"
-	"github.com/srikarjy/research-orchestrator/biolab-mcp-server/internal/tools/retrievers"
-	"github.com/srikarjy/research-orchestrator/biolab-mcp-server/internal/tools/visualizers"
+	"github.com/srikarjy/research-orchestrator/biolab-mcp-server/pkg/agents"
+	"github.com/srikarjy/research-orchestrator/biolab-mcp-server/pkg/mcp"
+	"github.com/srikarjy/research-orchestrator/biolab-mcp-server/pkg/sandbox"
+	"github.com/srikarjy/research-orchestrator/biolab-mcp-server/pkg/shared"
+	"github.com/srikarjy/research-orchestrator/biolab-mcp-server/pkg/tools/analyzers"
+	"github.com/srikarjy/research-orchestrator/biolab-mcp-server/pkg/tools/retrievers"
+	"github.com/srikarjy/research-orchestrator/biolab-mcp-server/pkg/retrievers/realretrievers"
+	"github.com/srikarjy/research-orchestrator/biolab-mcp-server/pkg/tools/visualizers"
 	"go.uber.org/zap"
 )
 
@@ -28,16 +29,30 @@ func main() {
 	logger, _ := zap.NewProduction()
 	defer logger.Sync()
 
+	// Determine if we should use real APIs or mock
+	useRealAPIs := getEnvBool("USE_REAL_APIS", false)
+	logger.Info("Biolab MCP Server configuration", zap.Bool("use_real_apis", useRealAPIs))
+
 	// Create tool registry
 	registry := mcp.NewToolRegistry()
 
 	// Register retrievers
-	registry.Register(retrievers.NewPubMedRetriever())
-	registry.Register(retrievers.NewUniProtRetriever())
-	registry.Register(retrievers.NewChEMBLRetriever())
-	registry.Register(retrievers.NewPDBRetriever())
-	registry.Register(retrievers.NewKEGGRetriever())
-	registry.Register(retrievers.NewBindingDBRetriever())
+	if useRealAPIs {
+		logger.Info("Registering REAL retrievers")
+		pubmedAPIKey := getEnv("PUBMED_API_KEY", "")
+		registry.Register(realretrievers.NewPubMedRetriever(pubmedAPIKey))
+		registry.Register(realretrievers.NewChEMBLRetriever())
+		registry.Register(realretrievers.NewUniProtRetriever())
+		// TODO: Add PDB, KEGG, BindingDB real retrievers
+	} else {
+		logger.Info("Registering MOCK retrievers")
+		registry.Register(retrievers.NewPubMedRetriever())
+		registry.Register(retrievers.NewUniProtRetriever())
+		registry.Register(retrievers.NewChEMBLRetriever())
+		registry.Register(retrievers.NewPDBRetriever())
+		registry.Register(retrievers.NewKEGGRetriever())
+		registry.Register(retrievers.NewBindingDBRetriever())
+	}
 
 	// Register analyzers
 	registry.Register(analyzers.NewProteinStabilityPredictor())
@@ -432,6 +447,13 @@ func main() {
 func getEnv(key, fallback string) string {
 	if v := os.Getenv(key); v != "" {
 		return v
+	}
+	return fallback
+}
+
+func getEnvBool(key string, fallback bool) bool {
+	if v := os.Getenv(key); v != "" {
+		return v == "true" || v == "1" || v == "yes"
 	}
 	return fallback
 }

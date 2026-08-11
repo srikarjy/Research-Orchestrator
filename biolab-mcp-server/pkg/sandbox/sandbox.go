@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/srikarjy/research-orchestrator/biolab-mcp-server/internal/shared"
+	"github.com/srikarjy/research-orchestrator/biolab-mcp-server/pkg/shared"
 	"go.uber.org/zap"
 )
 

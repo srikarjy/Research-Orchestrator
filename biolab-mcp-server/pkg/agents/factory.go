@@ -3,8 +3,8 @@ package agents
 import (
 	"time"
 
-	"github.com/srikarjy/research-orchestrator/biolab-mcp-server/internal/mcp"
-	"github.com/srikarjy/research-orchestrator/biolab-mcp-server/internal/sandbox"
+	"github.com/srikarjy/research-orchestrator/biolab-mcp-server/pkg/mcp"
+	"github.com/srikarjy/research-orchestrator/biolab-mcp-server/pkg/sandbox"
 	"go.uber.org/zap"
 )
 

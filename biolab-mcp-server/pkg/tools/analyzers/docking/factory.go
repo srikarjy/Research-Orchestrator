@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/srikarjy/research-orchestrator/biolab-mcp-server/internal/tools/analyzers"
+	"github.com/srikarjy/research-orchestrator/biolab-mcp-server/pkg/tools/analyzers"
 )
 
 type DockingTool interface {

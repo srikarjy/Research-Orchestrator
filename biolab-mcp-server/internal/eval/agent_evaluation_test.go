@@ -11,11 +11,11 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/srikarjy/research-orchestrator/biolab-mcp-server/internal/agents"
-	"github.com/srikarjy/research-orchestrator/biolab-mcp-server/internal/mcp"
-	"github.com/srikarjy/research-orchestrator/biolab-mcp-server/internal/sandbox"
-	"github.com/srikarjy/research-orchestrator/biolab-mcp-server/internal/tools/analyzers"
-	"github.com/srikarjy/research-orchestrator/biolab-mcp-server/internal/tools/retrievers"
+	"github.com/srikarjy/research-orchestrator/biolab-mcp-server/pkg/agents"
+	"github.com/srikarjy/research-orchestrator/biolab-mcp-server/pkg/mcp"
+	"github.com/srikarjy/research-orchestrator/biolab-mcp-server/pkg/sandbox"
+	"github.com/srikarjy/research-orchestrator/biolab-mcp-server/pkg/tools/analyzers"
+	"github.com/srikarjy/research-orchestrator/biolab-mcp-server/pkg/tools/retrievers"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 )
