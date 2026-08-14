@@ -135,7 +135,7 @@ function App() {
 
   return (
     <>
-      <ConfidenceLadder />
+      <ConfidenceLadder evidence={displayEvidence} />
       <CalendarPanel />
       <main style={{ marginLeft: 80, marginRight: 380, padding: 24 }}>
         <header style={{ marginBottom: 32 }}>

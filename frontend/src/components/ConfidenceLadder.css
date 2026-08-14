@@ -10,27 +10,185 @@
   align-items: stretch;
   padding: 16px 8px;
   gap: 4px;
+  z-index: 100;
 }
 
-.confidence-ladder__row {
+.confidence-ladder--compact {
+  width: 60px;
+  padding: 12px 6px;
+}
+
+.confidence-ladder__signals {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 8px;
+  flex: 1;
+  justify-content: flex-end;
+}
+
+.confidence-ladder__signal {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  position: relative;
+  height: 20%;
+  min-height: 80px;
+  justify-content: flex-end;
+}
+
+.confidence-ladder__band-wrapper {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  display: flex;
+  align-items: flex-end;
 }
 
 .confidence-ladder__band {
-  display: block;
-  height: 14px;
+  width: 100%;
+  height: var(--signal-height, 0%);
   border-radius: 2px;
-  opacity: 0.35;
-}
-
-.confidence-ladder__band--literature,
-.confidence-ladder__band--protein,
-.confidence-ladder__band--clinical {
-  background: var(--signal);
+  background: var(--signal-color, var(--signal));
+  transition: height 0.5s ease-out, background-color 0.3s ease;
+  position: relative;
 }
 
 .confidence-ladder__band--llm {
-  background: var(--muted);
+  opacity: 0.4;
+}
+
+.confidence-ladder__band--llm::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 3px,
+    rgba(0, 0, 0, 0.15) 3px,
+    rgba(0, 0, 0, 0.15) 6px
+  );
+  pointer-events: none;
+  border-radius: 2px;
+}
+
+.confidence-ladder__meta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding-top: 4px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+}
+
+.confidence-ladder__short-label {
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.confidence-ladder__value {
+  color: var(--bg);
+  font-weight: 600;
+  font-size: 10px;
+}
+
+.confidence-ladder__overall {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding-top: 8px;
+  margin-top: auto;
+  border-top: 1px solid rgba(91, 107, 115, 0.3);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.confidence-ladder__overall-label {
+  font-family: var(--font-sans);
+  font-weight: 500;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 8px;
+}
+
+.confidence-ladder__overall-value {
+  color: var(--signal);
+  font-size: 11px;
+}
+
+/* Tooltip on hover for signal bands */
+.confidence-ladder__signal::before {
+  content: attr(title);
+  position: absolute;
+  left: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  margin-left: 12px;
+  padding: 8px 12px;
+  background: var(--ink);
+  color: var(--bg);
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 400;
+  border-radius: 4px;
+  white-space: nowrap;
+  z-index: 200;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+  pointer-events: none;
+  max-width: 280px;
+}
+
+.confidence-ladder__signal::after {
+  content: "";
+  position: absolute;
+  left: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  margin-left: 8px;
+  border: 6px solid transparent;
+  border-right-color: var(--ink);
+  z-index: 200;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+  pointer-events: none;
+}
+
+.confidence-ladder__signal:hover::before,
+.confidence-ladder__signal:hover::after {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Compact mode adjustments */
+.confidence-ladder--compact .confidence-ladder__signal {
+  min-height: 60px;
+}
+
+.confidence-ladder--compact .confidence-ladder__meta {
+  font-size: 8px;
+}
+
+.confidence-ladder--compact .confidence-ladder__value {
+  font-size: 9px;
+}
+
+.confidence-ladder--compact .confidence-ladder__overall {
+  font-size: 9px;
+}
+
+.confidence-ladder--compact .confidence-ladder__overall-value {
+  font-size: 10px;
 }

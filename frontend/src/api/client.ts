@@ -205,40 +205,50 @@ export const assayosApi = {
       }),
   },
 
-  // ============ Aletheia (Plane 1) ============
-  aletheia: {
-    investigate: (query: string, options?: Record<string, unknown>) =>
-      fetchJson<InvestigationResponse>(`${apiConfig.aletheia}/investigate`, {
+  // ============ Orchestrator Query (Real Aletheia Integration) ============
+  orchestrator: {
+    query: (claim: string) =>
+      fetchJson<DebateResponse>(`${apiConfig.base}/api/v1/query`, {
         method: "POST",
-        body: JSON.stringify({ query, options }),
+        body: JSON.stringify({ claim }),
       }),
 
-    getInvestigationStatus: (workflowId: string) =>
-      fetchJson<InvestigationStatus>(`${apiConfig.aletheia}/investigate/${workflowId}/status`),
+    health: () =>
+      fetchJson<{ status: string; timestamp: string; version: string; components: Record<string, string> }>(`${apiConfig.base}/health`),
+  },
 
-    listWorkflows: () =>
-      fetchJson<Array<{ id: string; name: string; status: string }>>(`${apiConfig.aletheia}/workflows`),
-
+  // ============ Aletheia Direct (Plane 1) ============
+  aletheia: {
     health: () =>
       fetchJson<{ status: string; service: string; version: string }>(`${apiConfig.aletheia}/health`),
   },
 };
 
-// ============ Type Definitions for Aletheia ============
+// ============ Type Definitions for Aletheia/Orchestrator Query ============
 
-export interface InvestigationResponse {
-  workflow_id: string;
-  status: string;
-  plan: Record<string, unknown>;
-  estimated_duration_ms: number;
+export interface DebateResponse {
+  debate_id: string;
+  claim: string;
+  conclusion: string;
+  verdict: "supported" | "refuted" | "unresolved";
+  confidence: number;
+  confidence_rationale: string;
+  driving_provenance_ids: number[];
+  transcript: TranscriptEntry[];
+  sources: Source[];
 }
 
-export interface InvestigationStatus {
-  workflow_id: string;
-  status: string;
-  progress: string;
-  current_step: string | null;
-  events: unknown[];
+export interface TranscriptEntry {
+  agent: string;
+  action: string;
+  detail: Record<string, unknown>;
+  source_paper_id: string | null;
+}
+
+export interface Source {
+  paper_id: string;
+  title: string;
+  used_by: string[];
 }
 
 // ============ Unified Research Orchestration API ============
@@ -275,76 +285,64 @@ export const researchApi = {
   },
 
   /**
-   * Execute a full research pipeline: plan → retrieve → analyze → synthesize
+   * Execute a full research pipeline: query → real Aletheia debate → evidence card
    */
   executeFullPipeline: async (query: ResearchQuery): Promise<ResearchEvidence> => {
-    const tasks: Task[] = [
-      {
-        id: crypto.randomUUID(),
-        type: "plan",
-        description: "Decompose query into investigation plan",
-        input: { query: query.query, options: query.options },
-        priority: 10,
-        dependencies: [],
-        metadata: {},
-      },
-      {
-        id: crypto.randomUUID(),
-        type: "retrieve",
-        description: "Retrieve evidence from multiple sources",
-        input: { query: query.query },
-        priority: 8,
-        dependencies: [],
-        metadata: {},
-      },
-      {
-        id: crypto.randomUUID(),
-        type: "analyze",
-        description: "Analyze evidence with critic and stability/docking",
-        input: {},
-        priority: 6,
-        dependencies: [],
-        metadata: {},
-      },
-      {
-        id: crypto.randomUUID(),
-        type: "synthesize",
-        description: "Synthesize findings into evidence card",
-        input: {},
-        priority: 4,
-        dependencies: [],
-        metadata: {},
-      },
-    ];
+    // Call the real orchestrator query endpoint which routes to Aletheia
+    const debateResponse = await assayosApi.orchestrator.query(query.query);
 
-    const workflow = await assayosApi.biolab.createWorkflow({
-      name: `Full Pipeline: ${query.query.slice(0, 50)}...`,
-      description: query.query,
-      tasks,
-      metadata: { pipeline: true, original_query: query.query },
-    });
+    // Map Aletheia DebateResponse to frontend EvidenceCard
+    const evidenceCard = researchApi.debateResponseToEvidenceCard(debateResponse);
 
-    await assayosApi.biolab.executeWorkflow(workflow.id);
-
-    // For now, return a placeholder - real implementation would poll workflow status
     return {
-      evidence_card: {
-        id: `EV-${Date.now()}`,
-        claim: query.query,
-        confidence: {
-          overall: 0.75,
-          signals: {
-            literature: 0.8,
-            protein_evidence: 0.7,
-            clinical_evidence: 0.6,
-            llm_rating: 0.85,
-          },
-        },
-        sources: [],
-        toolCalls: [],
-      },
+      evidence_card: evidenceCard,
       workflow_events: [],
       agent_messages: [],
+    };
+  },
+
+  /**
+   * Convert Aletheia DebateResponse to frontend EvidenceCard
+   */
+  debateResponseToEvidenceCard: (response: DebateResponse): EvidenceCard => {
+    // Map sources to EvidenceSource format
+    const sources: EvidenceSource[] = response.sources.map((src) => ({
+      id: src.paper_id,
+      type: "paper" as const,
+      title: src.title,
+      ref_url: `https://pubmed.ncbi.nlm.nih.gov/${src.paper_id}/`,
+      stance: undefined, // Could be derived from transcript
+      payload: { pmid: src.paper_id, retrieval_id: src.paper_id }, // Using pmid as retrieval_id for now
+    }));
+
+    // Map transcript to tool calls
+    const toolCalls: ToolCallTrace[] = response.transcript.map((entry) => ({
+      tool: `${entry.agent}:${entry.action}`,
+      category: "retriever" as const,
+      latencyMs: 0,
+      cacheHit: false,
+      retries: 0,
+    }));
+
+    // For now, use overall confidence for all signals
+    // In future, Aletheia could return per-signal breakdown
+    const overall = response.confidence;
+    const confidence = {
+      overall,
+      signals: {
+        literature: overall,
+        protein_evidence: overall,
+        clinical_evidence: overall,
+        llm_rating: overall,
+      },
+    };
+
+    return {
+      id: `EV-${response.debate_id.slice(0, 8)}`,
+      claim: response.claim,
+      confidence,
+      sources,
+      toolCalls,
     };
   },
 

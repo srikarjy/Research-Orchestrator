@@ -11,6 +11,7 @@ import (
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 
+	"github.com/srikarjy/research-orchestrator/orchestrator/internal/aletheia"
 	"github.com/srikarjy/research-orchestrator/orchestrator/internal/kernel"
 	"github.com/srikarjy/research-orchestrator/orchestrator/internal/services"
 	"github.com/srikarjy/research-orchestrator/orchestrator/internal/gateway"
@@ -96,7 +97,14 @@ func runServer(cmd *cobra.Command, args []string) error {
 		BiolabMCPURL: viper.GetString("biolab_mcp_url"),
 	}
 	platform.BiolabMCP = services.NewBiolabMCPService(platform.Logger, biolabConfig)
-	
+
+	// Initialize Aletheia client
+	aletheiaURL := viper.GetString("aletheia_url")
+	if aletheiaURL == "" {
+		aletheiaURL = cfg.AletheiaURL
+	}
+	platform.Aletheia = aletheia.NewClient(aletheiaURL, platform.Logger)
+
 	platform.RegisterService(platform.WorkflowEngine)
 	platform.RegisterService(platform.BiolabMCP)
 

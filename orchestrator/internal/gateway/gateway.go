@@ -13,6 +13,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.uber.org/zap"
 
+	"github.com/srikarjy/research-orchestrator/orchestrator/internal/aletheia"
 	"github.com/srikarjy/research-orchestrator/orchestrator/internal/api"
 	"github.com/srikarjy/research-orchestrator/orchestrator/internal/kernel"
 )
@@ -27,6 +28,7 @@ type Gateway struct {
 	server          *http.Server
 	workflowHandler api.WorkflowEngineService
 	biolabHandler   api.BiolabMCPService
+	aletheiaClient  *aletheia.Client
 }
 
 func NewGateway(p *kernel.Platform) *Gateway {
@@ -38,6 +40,7 @@ func NewGateway(p *kernel.Platform) *Gateway {
 		router:          router,
 		workflowHandler: p.WorkflowEngine,
 		biolabHandler:   p.BiolabMCP,
+		aletheiaClient:  p.Aletheia,
 	}
 
 	g.setupMiddleware()
@@ -134,6 +137,12 @@ func (g *Gateway) setupRoutes() {
 		notifs := v1.Group("/notifications")
 		{
 			notifs.POST("/send", g.adaptSendNotification)
+		}
+
+		// Aletheia query endpoint - the killer query
+		query := v1.Group("/query")
+		{
+			query.POST("", g.adaptAletheiaQuery)
 		}
 	}
 
@@ -436,6 +445,33 @@ func (g *Gateway) adaptWorkflowWS(c *gin.Context) {
 			break
 		}
 	}
+}
+
+func (g *Gateway) adaptAletheiaQuery(c *gin.Context) {
+	var req struct {
+		Claim string `json:"claim" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if g.aletheiaClient == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Aletheia client not configured"})
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 120*time.Second)
+	defer cancel()
+
+	result, err := g.aletheiaClient.Query(ctx, req.Claim)
+	if err != nil {
+		g.platform.Logger.Error("Aletheia query failed", zap.Error(err), zap.String("claim", req.Claim))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, result)
 }
 
 func (g *Gateway) Start() error {

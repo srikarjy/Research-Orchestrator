@@ -2,6 +2,52 @@ version: '3.8'
 
 services:
   # ==========================================
+  # ALETHEIA: Grounded Reasoning + Single-Call Debate
+  # ==========================================
+  aletheia:
+    build:
+      context: ../Aletheia
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://aletheia:aletheia@aletheia-db:5432/aletheia
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - MOCK_RETRIEVAL=true
+      - MOCK_EMBEDDINGS=true
+      - MOCK_LLM=true
+    depends_on:
+      aletheia-db:
+        condition: service_healthy
+    networks:
+      - research-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  aletheia-db:
+    image: pgvector/pgvector:pg16
+    environment:
+      - POSTGRES_USER=aletheia
+      - POSTGRES_PASSWORD=aletheia
+      - POSTGRES_DB=aletheia
+    ports:
+      - "55432:5432"
+    volumes:
+      - aletheia-pgdata:/var/lib/postgresql/data
+      - ../Aletheia/db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - research-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aletheia -d aletheia"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ==========================================
   # ORCHESTRATOR: Workflow Engine + Planner + API Gateway
   # ==========================================
   orchestrator:
@@ -16,6 +62,7 @@ services:
       - ORCH_DATABASE_DSN=postgres://orchestrator:orchestrator@postgres:5432/orchestrator?sslmode=disable
       - ORCH_REDIS_ADDR=redis:6379
       - ORCH_BIOLAB_MCP_URL=http://biolab-mcp:8081
+      - ORCH_ALETHEIA_URL=http://aletheia:8000
       - ORCH_LOG_LEVEL=info
       - ORCH_WORKFLOW_ENGINE_DSN=postgres://workflow:workflow@postgres:5432/workflow?sslmode=disable
       - ORCH_WORKFLOW_ENGINE_STREAM=workflow-steps
@@ -26,6 +73,8 @@ services:
       redis:
         condition: service_healthy
       biolab-mcp:
+        condition: service_healthy
+      aletheia:
         condition: service_healthy
       workflow-engine-migrate:
         condition: service_completed_successfully
@@ -164,3 +213,4 @@ networks:
 volumes:
   postgres-data:
   redis-data:
+  aletheia-pgdata:

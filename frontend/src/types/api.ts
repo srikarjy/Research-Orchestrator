@@ -270,6 +270,33 @@ export interface TimelineEvent {
   sourceId?: string;
 }
 
+// ============ Aletheia Types ============
+
+export interface DebateResponse {
+  debate_id: string;
+  claim: string;
+  conclusion: string;
+  verdict: "supported" | "refuted" | "unresolved";
+  confidence: number;
+  confidence_rationale: string;
+  driving_provenance_ids: number[];
+  transcript: TranscriptEntry[];
+  sources: Source[];
+}
+
+export interface TranscriptEntry {
+  agent: string;
+  action: string;
+  detail: Record<string, unknown>;
+  source_paper_id: string | null;
+}
+
+export interface Source {
+  paper_id: string;
+  title: string;
+  used_by: string[];
+}
+
 // ============ Unified Research Orchestration Types ============
 
 export interface ResearchQuery {

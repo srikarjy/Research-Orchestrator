@@ -166,13 +166,23 @@ endpoint, and Aletheia's retrieval to the real published `biolab-mcp-server`
 instead of the filesystem/subprocess hack.**
 
 Concrete steps:
-1. In `Aletheia/app/mcp_client.py`, replace the `stdio_client`/subprocess
-   spawn of the *old* Biolab MCP Server with a real call to
-   `srikarjy/biolab-mcp-server`'s actual interface — check whether it's
-   MCP-stdio (published as a PyPI package, could be spawned as `biolab-mcp`
-   via `stdio_client` similarly, just pointed at the *real* package) or
-   whether it needs an HTTP wrapper. Read that repo's actual server entry
-   point before assuming either.
+1. ~~Fix Aletheia's retrieval integration~~ — **already correct, verified
+   live during this handoff, no code change needed.** The local checkout
+   at `/Users/srikarjy/resume_projects/Biolab MCP Server` (note: outside
+   this repo, a sibling directory) IS a real clone of
+   `srikarjy/biolab-mcp-server`, with a working `.venv` and a real
+   `biolab.db`. `mcp_client.py`'s `stdio_client`/`-m biolab.server`
+   subprocess spawn is the *correct* mechanism (that repo's `server.py`
+   is a real `FastMCP` stdio server exposing `search_pubmed` with exactly
+   the shape `mcp_client.py` expects). Verified end-to-end during this
+   handoff: a real `search_pubmed("BRAF V600E binding affinity", ...)`
+   call returned 2 real PubMed papers with real `retrieval_id`s, and both
+   showed up as real rows in `biolab.db`'s `retrievals` table
+   (`sqlite3 biolab.db "SELECT * FROM retrievals ..."` — confirmed).
+   **The only real requirement going forward: whatever machine runs
+   Aletheia needs that sibling checkout present with its `.venv` set up**
+   (or `BIOLAB_PROJECT_PATH`/`BIOLAB_DB_PATH` repointed at wherever it
+   lives) — that's a deployment/environment concern, not a code bug.
 2. In `orchestrator`, add a thin HTTP client (new package, e.g.
    `orchestrator/internal/aletheia/client.go`) that calls Aletheia's
    `POST /debate` with a claim string and gets back `DebateResponse`

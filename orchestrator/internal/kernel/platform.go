@@ -9,6 +9,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
 	"github.com/srikarjy/research-orchestrator/orchestrator/internal/api"
+	"github.com/srikarjy/research-orchestrator/orchestrator/internal/aletheia"
 	gozap "go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -21,6 +22,7 @@ type Platform struct {
 	EventBus       *EventBus
 	WorkflowEngine api.WorkflowEngineService
 	BiolabMCP      api.BiolabMCPService
+	Aletheia       *aletheia.Client
 
 	mu       sync.RWMutex
 	services map[string]Service
@@ -50,6 +52,7 @@ type Config struct {
 
 	WorkflowsEnabled bool   `mapstructure:"WORKFLOWS_ENABLED" default:"true"`
 	BiolabMCPURL     string `mapstructure:"BIOLAB_MCP_URL" default:"http://localhost:8081"`
+	AletheiaURL      string `mapstructure:"ALETHEIA_URL" default:"http://localhost:8000"`
 
 	// WorkflowEngine points at the standalone srikarjy/workflow-Engine
 	// service's own Postgres + the Redis Stream its worker pool consumes.
@@ -341,6 +344,7 @@ func DefaultConfig() *Config {
 		},
 		WorkflowsEnabled: true,
 		BiolabMCPURL:     "http://localhost:8081",
+		AletheiaURL:      "http://localhost:8000",
 		WorkflowEngine: struct {
 			DSN    string `mapstructure:"WORKFLOW_ENGINE_DSN" default:"postgres://workflow:workflow@localhost:15432/workflow?sslmode=disable"`
 			Stream string `mapstructure:"WORKFLOW_ENGINE_STREAM" default:"workflow-steps"`
