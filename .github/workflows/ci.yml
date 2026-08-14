@@ -58,30 +58,30 @@ jobs:
               return;
             }
             
-            let reviewPrompt = `You are a senior frontend engineer reviewing a React + TypeScript + Vite project for a research orchestration dashboard. 
-            
-Project context:
-- React 19 + TypeScript + Vite
-- Custom design system with CSS variables (--bg, --ink, --signal, --alert, --structural, --muted)
-- Two font families: --font-mono (IBM Plex Mono) for data/evidence IDs, --font-sans (IBM Plex Sans) for prose
-- Components: ConfidenceHeatmap, ContradictionGraph, StructureViewer, MoleculeViewer, ToolExecutionGraph, SequenceAlignment, Timeline, PathwayViewer, AgentPanel, WorkflowPanel, SandboxPanel, NotificationPanel
-- Real-time WebSocket integration with Go backend
-- Evaluation tests in evaluation.test.ts verify visual correctness
+            let reviewPrompt = `You are a senior frontend engineer reviewing a React + TypeScript + Vite project for a research orchestration dashboard.
 
-Review these changes for:
-1. Design system adherence (CSS variables, fonts, color palette)
-2. TypeScript correctness (no 'any', proper interfaces)
-3. React best practices (hooks, memo, proper dependencies)
-4. Accessibility (ARIA labels, semantic HTML)
-5. Performance (unnecessary re-renders, large bundle imports)
-6. Error handling and loading states
-7. Test coverage for new components/logic
+            Project context:
+            - React 19 + TypeScript + Vite
+            - Custom design system with CSS variables (--bg, --ink, --signal, --alert, --structural, --muted)
+            - Two font families: --font-mono (IBM Plex Mono) for data/evidence IDs, --font-sans (IBM Plex Sans) for prose
+            - Components: ConfidenceHeatmap, ContradictionGraph, StructureViewer, MoleculeViewer, ToolExecutionGraph, SequenceAlignment, Timeline, PathwayViewer, AgentPanel, WorkflowPanel, SandboxPanel, NotificationPanel
+            - Real-time WebSocket integration with Go backend
+            - Evaluation tests in evaluation.test.ts verify visual correctness
 
-Changed files:
-${changedFiles.map(f => `- ${f}`).join('\n')}
+            Review these changes for:
+            1. Design system adherence (CSS variables, fonts, color palette)
+            2. TypeScript correctness (no 'any', proper interfaces)
+            3. React best practices (hooks, memo, proper dependencies)
+            4. Accessibility (ARIA labels, semantic HTML)
+            5. Performance (unnecessary re-renders, large bundle imports)
+            6. Error handling and loading states
+            7. Test coverage for new components/logic
 
-Diff:
-`;
+            Changed files:
+            ${changedFiles.map(f => `- ${f}`).join('\n')}
+
+            Diff:
+            `;
             
             for (const file of changedFiles) {
               const { stdout: fileDiff } = await exec(`git diff ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }} -- ${file}`);
@@ -183,25 +183,25 @@ Diff:
             }
             
             let reviewPrompt = `You are a senior Go engineer reviewing a research orchestration backend with three services:
-            
-1. workflow-engine: Durable execution plane with idempotent step execution, event log, WebSocket broadcasting
-2. biolab-mcp-server: Multi-agent system (planner, researcher, critic, executor, validator, notifier, clinical_trial, regulatory, biomarker) with 10+ bio tools
-3. orchestrator: API Gateway + Workflow Engine client + Biolab MCP client + Aletheia client
 
-Review these changes for:
-1. Go idioms and best practices (error handling, interfaces, context propagation)
-2. Concurrency safety (mutexes, channels, goroutine leaks)
-3. API design (RESTful, proper status codes, consistent JSON)
-4. Observability (structured logging with zap, metrics)
-5. Security (input validation, no secrets in logs, SQL injection prevention)
-6. Test coverage (table-driven tests, mock interfaces)
-7. Documentation (godoc comments for exported types/functions)
+            1. workflow-engine: Durable execution plane with idempotent step execution, event log, WebSocket broadcasting
+            2. biolab-mcp-server: Multi-agent system (planner, researcher, critic, executor, validator, notifier, clinical_trial, regulatory, biomarker) with 10+ bio tools
+            3. orchestrator: API Gateway + Workflow Engine client + Biolab MCP client + Aletheia client
 
-Changed files:
-${changedFiles.map(f => `- ${f}`).join('\n')}
+            Review these changes for:
+            1. Go idioms and best practices (error handling, interfaces, context propagation)
+            2. Concurrency safety (mutexes, channels, goroutine leaks)
+            3. API design (RESTful, proper status codes, consistent JSON)
+            4. Observability (structured logging with zap, metrics)
+            5. Security (input validation, no secrets in logs, SQL injection prevention)
+            6. Test coverage (table-driven tests, mock interfaces)
+            7. Documentation (godoc comments for exported types/functions)
 
-Diff:
-`;
+            Changed files:
+            ${changedFiles.map(f => `- ${f}`).join('\n')}
+
+            Diff:
+            `;
             
             for (const file of changedFiles) {
               const { stdout: fileDiff } = await exec(`git diff ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }} -- ${file}`);
