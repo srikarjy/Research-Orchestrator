@@ -1,3 +1,6 @@
 [submodule "workflow-engine"]
 	path = workflow-engine
 	url = https://github.com/srikarjy/workflow-Engine.git
+[submodule "Aletheia"]
+	path = Aletheia
+	url = https://github.com/srikarjy/Aletheia.git
