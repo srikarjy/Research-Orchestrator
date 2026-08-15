@@ -26,12 +26,15 @@ import (
 var ErrNotFound = errors.New("monitor not found")
 
 type Monitor struct {
-	ID              string    `json:"id"`
-	UserID          string    `json:"user_id"`
-	Claim           string    `json:"claim"`
-	IntervalSeconds int       `json:"interval_seconds"`
-	Active          bool      `json:"active"`
-	CreatedAt       time.Time `json:"created_at"`
+	ID              string `json:"id"`
+	UserID          string `json:"user_id"`
+	Claim           string `json:"claim"`
+	IntervalSeconds int    `json:"interval_seconds"`
+	// WebhookURL, when set, receives a JSON POST whenever a check is flagged
+	// as changed. Works with Slack/Discord-style incoming webhooks.
+	WebhookURL string    `json:"webhook_url,omitempty"`
+	Active     bool      `json:"active"`
+	CreatedAt  time.Time `json:"created_at"`
 }
 
 type Check struct {
@@ -59,9 +62,11 @@ func NewStore(ctx context.Context, pool *pgxpool.Pool) (*Store, error) {
 			user_id TEXT NOT NULL,
 			claim TEXT NOT NULL,
 			interval_seconds INT NOT NULL,
+			webhook_url TEXT NOT NULL DEFAULT '',
 			active BOOLEAN NOT NULL DEFAULT true,
 			created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 		);
+		ALTER TABLE monitors ADD COLUMN IF NOT EXISTS webhook_url TEXT NOT NULL DEFAULT '';
 		CREATE TABLE IF NOT EXISTS monitor_checks (
 			id BIGSERIAL PRIMARY KEY,
 			monitor_id UUID NOT NULL REFERENCES monitors(id) ON DELETE CASCADE,
@@ -83,20 +88,20 @@ func NewStore(ctx context.Context, pool *pgxpool.Pool) (*Store, error) {
 	return &Store{pool: pool}, nil
 }
 
-func (s *Store) Create(ctx context.Context, userID, claim string, interval time.Duration) (Monitor, error) {
+func (s *Store) Create(ctx context.Context, userID, claim string, interval time.Duration, webhookURL string) (Monitor, error) {
 	var m Monitor
 	err := s.pool.QueryRow(ctx, `
-		INSERT INTO monitors (user_id, claim, interval_seconds)
-		VALUES ($1, $2, $3)
-		RETURNING id, user_id, claim, interval_seconds, active, created_at
-	`, userID, claim, int(interval.Seconds())).Scan(
-		&m.ID, &m.UserID, &m.Claim, &m.IntervalSeconds, &m.Active, &m.CreatedAt)
+		INSERT INTO monitors (user_id, claim, interval_seconds, webhook_url)
+		VALUES ($1, $2, $3, $4)
+		RETURNING id, user_id, claim, interval_seconds, webhook_url, active, created_at
+	`, userID, claim, int(interval.Seconds()), webhookURL).Scan(
+		&m.ID, &m.UserID, &m.Claim, &m.IntervalSeconds, &m.WebhookURL, &m.Active, &m.CreatedAt)
 	return m, err
 }
 
 func (s *Store) ListByUser(ctx context.Context, userID string) ([]Monitor, error) {
 	rows, err := s.pool.Query(ctx, `
-		SELECT id, user_id, claim, interval_seconds, active, created_at
+		SELECT id, user_id, claim, interval_seconds, webhook_url, active, created_at
 		FROM monitors WHERE user_id = $1 AND active ORDER BY created_at
 	`, userID)
 	if err != nil {
@@ -109,9 +114,9 @@ func (s *Store) ListByUser(ctx context.Context, userID string) ([]Monitor, error
 func (s *Store) Get(ctx context.Context, userID, id string) (Monitor, error) {
 	var m Monitor
 	err := s.pool.QueryRow(ctx, `
-		SELECT id, user_id, claim, interval_seconds, active, created_at
+		SELECT id, user_id, claim, interval_seconds, webhook_url, active, created_at
 		FROM monitors WHERE id = $1 AND user_id = $2 AND active
-	`, id, userID).Scan(&m.ID, &m.UserID, &m.Claim, &m.IntervalSeconds, &m.Active, &m.CreatedAt)
+	`, id, userID).Scan(&m.ID, &m.UserID, &m.Claim, &m.IntervalSeconds, &m.WebhookURL, &m.Active, &m.CreatedAt)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return Monitor{}, ErrNotFound
 	}
@@ -135,7 +140,7 @@ func (s *Store) Deactivate(ctx context.Context, userID, id string) error {
 // interval (or that have never been checked).
 func (s *Store) Due(ctx context.Context) ([]Monitor, error) {
 	rows, err := s.pool.Query(ctx, `
-		SELECT m.id, m.user_id, m.claim, m.interval_seconds, m.active, m.created_at
+		SELECT m.id, m.user_id, m.claim, m.interval_seconds, m.webhook_url, m.active, m.created_at
 		FROM monitors m
 		LEFT JOIN LATERAL (
 			SELECT checked_at FROM monitor_checks
@@ -213,7 +218,7 @@ func scanMonitors(rows pgx.Rows) ([]Monitor, error) {
 	var monitors []Monitor
 	for rows.Next() {
 		var m Monitor
-		if err := rows.Scan(&m.ID, &m.UserID, &m.Claim, &m.IntervalSeconds, &m.Active, &m.CreatedAt); err != nil {
+		if err := rows.Scan(&m.ID, &m.UserID, &m.Claim, &m.IntervalSeconds, &m.WebhookURL, &m.Active, &m.CreatedAt); err != nil {
 			return nil, err
 		}
 		monitors = append(monitors, m)

@@ -528,6 +528,26 @@ function App() {
               )}
             </div>
             <ConfidenceHeatmap evidence={researchEvidence.evidence_card} />
+            <div style={{ marginTop: 20 }}>
+              <h3 style={{ fontFamily: "var(--font-sans)", fontSize: "16px", fontWeight: 600, marginBottom: 8 }}>
+                Sources ({researchEvidence.evidence_card.sources.length})
+              </h3>
+              <ul style={{ listStyle: "none", padding: 0, margin: 0, fontFamily: "var(--font-mono)", fontSize: "12px", lineHeight: 1.9 }}>
+                {researchEvidence.evidence_card.sources.map((s) => (
+                  <li key={s.id}>
+                    <a href={s.refUrl || (s as { ref_url?: string }).ref_url} target="_blank" rel="noreferrer" style={{ color: "var(--structural)", textDecoration: "none" }}>
+                      {s.id}
+                    </a>
+                    {" — "}{s.title}
+                    {s.retracted && (
+                      <span style={{ marginLeft: 8, background: "var(--alert)", color: "var(--bg)", padding: "1px 6px", fontSize: "10px", fontWeight: 700 }}>
+                        RETRACTED
+                      </span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
             {researchEvidence.evidence_card.sources.some((s) => s.stance) && (
               <section style={{ marginTop: 24 }}>
                 <h3 style={{ fontFamily: "var(--font-sans)", fontSize: "16px", fontWeight: 600, marginBottom: 12 }}>

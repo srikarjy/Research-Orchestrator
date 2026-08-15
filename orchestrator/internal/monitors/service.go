@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"net/http"
 	"time"
 
 	"go.uber.org/zap"
@@ -23,13 +24,19 @@ type Querier interface {
 }
 
 type Service struct {
-	store   *Store
-	querier Querier
-	logger  *zap.Logger
+	store    *Store
+	querier  Querier
+	logger   *zap.Logger
+	webhooks *http.Client
 }
 
 func NewService(store *Store, querier Querier, logger *zap.Logger) *Service {
-	return &Service{store: store, querier: querier, logger: logger.Named("monitors")}
+	return &Service{
+		store:    store,
+		querier:  querier,
+		logger:   logger.Named("monitors"),
+		webhooks: &http.Client{Timeout: webhookTimeout},
+	}
 }
 
 // RunCheck evaluates a monitor's claim now and records the check, flagging
@@ -71,6 +78,9 @@ func (s *Service) RunCheck(ctx context.Context, m Monitor) (Check, error) {
 			zap.String("monitor_id", m.ID),
 			zap.String("claim", m.Claim),
 			zap.String("note", saved.ChangeNote))
+		if m.WebhookURL != "" {
+			fireWebhook(ctx, s.webhooks, s.logger, m, saved)
+		}
 	}
 	return saved, nil
 }

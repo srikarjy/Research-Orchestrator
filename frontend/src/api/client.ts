@@ -271,6 +271,11 @@ export interface Source {
   paper_id: string;
   title: string;
   used_by: string[];
+  // Retraction screen results; false can also mean "unknown" (screen
+  // degraded or non-PubMed source) -- true is always a real PubMed marker.
+  retracted?: boolean;
+  concern?: boolean;
+  retraction_notice?: string | null;
 }
 
 // ============ Unified Research Orchestration API ============
@@ -339,8 +344,14 @@ export const researchApi = {
         ref_url: isTrial
           ? `https://clinicaltrials.gov/study/${src.paper_id}`
           : `https://pubmed.ncbi.nlm.nih.gov/${src.paper_id}/`,
+        retracted: src.retracted ?? false,
         stance: undefined, // Could be derived from transcript
-        payload: { pmid: src.paper_id, retrieval_id: src.paper_id }, // Using pmid as retrieval_id for now
+        payload: {
+          pmid: src.paper_id,
+          retrieval_id: src.paper_id, // Using pmid as retrieval_id for now
+          concern: src.concern ?? false,
+          retraction_notice: src.retraction_notice ?? null,
+        },
       };
     });
 

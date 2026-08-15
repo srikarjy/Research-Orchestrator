@@ -25,6 +25,11 @@ type Source struct {
 	PaperID string   `json:"paper_id"`
 	Title   string   `json:"title"`
 	UsedBy  []string `json:"used_by"`
+	// Retraction screen results; false can mean "unknown" (screen degraded
+	// or non-PubMed source) -- true is always a real PubMed marker.
+	Retracted        bool    `json:"retracted"`
+	Concern          bool    `json:"concern"`
+	RetractionNotice *string `json:"retraction_notice,omitempty"`
 }
 
 type TranscriptEntry struct {

@@ -60,6 +60,7 @@ export function MonitorsPanel() {
   const [selected, setSelected] = useState<string | null>(null);
   const [history, setHistory] = useState<Check[]>([]);
   const [claim, setClaim] = useState("");
+  const [webhookUrl, setWebhookUrl] = useState("");
   const [intervalHours, setIntervalHours] = useState(24);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -92,7 +93,11 @@ export function MonitorsPanel() {
     try {
       const m = await api<Monitor>("/monitors", {
         method: "POST",
-        body: JSON.stringify({ claim: claim.trim(), interval_hours: intervalHours }),
+        body: JSON.stringify({
+          claim: claim.trim(),
+          interval_hours: intervalHours,
+          webhook_url: webhookUrl.trim(),
+        }),
       });
       setClaim("");
       await refresh();
@@ -165,6 +170,13 @@ export function MonitorsPanel() {
         <button type="submit" disabled={busy || !claim.trim()} className="monitors-panel__create">
           Watch claim
         </button>
+        <input
+          value={webhookUrl}
+          onChange={(e) => setWebhookUrl(e.target.value)}
+          placeholder="Optional: Slack/Discord webhook URL — get pinged when the verdict or confidence changes"
+          className="monitors-panel__claim-input"
+          style={{ flexBasis: "100%" }}
+        />
       </form>
 
       {error && <div className="monitors-panel__error">{error}</div>}

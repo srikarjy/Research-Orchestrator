@@ -37,6 +37,9 @@ type createMonitorRequest struct {
 	// IntervalHours between checks; default 24, minimum 1 — every check is a
 	// real Claude call.
 	IntervalHours int `json:"interval_hours"`
+	// WebhookURL, optional: a Slack/Discord-style incoming webhook that
+	// receives a JSON POST whenever a check is flagged as changed.
+	WebhookURL string `json:"webhook_url"`
 }
 
 func (h *Handlers) Create(c *gin.Context) {
@@ -48,8 +51,12 @@ func (h *Handlers) Create(c *gin.Context) {
 	if req.IntervalHours <= 0 {
 		req.IntervalHours = 24
 	}
+	if err := ValidateWebhookURL(req.WebhookURL); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
 	m, err := h.store.Create(c.Request.Context(), userID(c), req.Claim,
-		time.Duration(req.IntervalHours)*time.Hour)
+		time.Duration(req.IntervalHours)*time.Hour, req.WebhookURL)
 	if err != nil {
 		h.logger.Error("create monitor failed", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "create failed"})
