@@ -1,0 +1,132 @@
+.confidence-trend {
+  position: relative;
+}
+
+.confidence-trend__svg {
+  width: 100%;
+  height: auto;
+  display: block;
+  background: var(--bg);
+}
+
+.confidence-trend__empty {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--muted);
+  padding: 24px;
+  text-align: center;
+  border: 1px dashed var(--muted);
+}
+
+.confidence-trend__grid {
+  stroke: var(--muted);
+  stroke-opacity: 0.25;
+  stroke-width: 1;
+}
+
+.confidence-trend__tick {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  fill: var(--muted);
+}
+
+.confidence-trend__hero-line {
+  fill: none;
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.confidence-trend__signal-line {
+  fill: none;
+  stroke-width: 2;
+  stroke-opacity: 0.75;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.confidence-trend__marker {
+  /* 2px surface ring so overlapping marks stay separable */
+  stroke: var(--bg);
+  stroke-width: 2;
+}
+
+.confidence-trend__changed-ring {
+  fill: none;
+  stroke: var(--alert);
+  stroke-width: 2;
+}
+
+.confidence-trend__end-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  fill: var(--ink);
+}
+
+.confidence-trend__end-label--signal {
+  fill: var(--muted);
+}
+
+.confidence-trend__crosshair {
+  stroke: var(--muted);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+}
+
+.confidence-trend__tooltip {
+  position: absolute;
+  top: 4px;
+  transform: translateX(-50%);
+  background: var(--ink);
+  color: var(--bg);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 8px 10px;
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 5;
+  line-height: 1.7;
+}
+
+.confidence-trend__tooltip-date {
+  color: #b9c2bd;
+}
+
+.confidence-trend__tooltip-verdict[data-verdict="supported"] { color: #6fe7b0; }
+.confidence-trend__tooltip-verdict[data-verdict="refuted"] { color: #ff9c8a; }
+.confidence-trend__tooltip-verdict[data-verdict="unresolved"] { color: #ffd479; }
+
+.confidence-trend__tooltip-signals {
+  display: flex;
+  gap: 10px;
+  margin-top: 2px;
+}
+
+.confidence-trend__tooltip-changed {
+  color: #ff9c8a;
+  margin-top: 2px;
+}
+
+.confidence-trend__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 8px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink);
+  align-items: center;
+}
+
+.confidence-trend__legend-changed {
+  color: var(--alert);
+  margin-left: auto;
+}
+
+.confidence-trend__swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 5px;
+  vertical-align: -1px;
+}

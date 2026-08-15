@@ -22,6 +22,9 @@ import pathwayKEGGFixture from "./fixtures/pathway-mapk.json";
 import pathwayReactomeFixture from "./fixtures/pathway-reactome-mapk.json";
 import type { EvidenceCard, ToolCallTrace, EvidenceSource, TimelineEvent } from "./types/evidence";
 import { useResearchOrchestrator, useExecutorData, useAgents, useMcpWorkflows } from "./api/hooks";
+import { AuthPanel } from "./components/AuthPanel";
+import { MonitorsPanel } from "./components/MonitorsPanel";
+import { getEmail, clearSession } from "./api/auth";
 
 const evidence1 = fixture1 as EvidenceCard;
 const evidence2 = fixture2 as EvidenceCard;
@@ -54,7 +57,8 @@ type MainTab =
   | "workflows" 
   | "sandbox" 
   | "notifications"
-  | "research";
+  | "research"
+  | "monitors";
 
 const PATHWAY_OPTIONS = [
   { id: "kegg", label: "KEGG MAPK", data: pathwayKEGGFixture },
@@ -67,6 +71,16 @@ function App() {
   const [activePathway, setActivePathway] = useState(0);
   const [backendConnected, setBackendConnected] = useState(false);
   const [researchQuery, setResearchQuery] = useState("");
+  const [userEmail, setUserEmail] = useState<string | null>(() => getEmail());
+  const [showAuth, setShowAuth] = useState(false);
+
+  // The API layer fires this on any 401 — the gateway is running with auth
+  // enabled and this session has no valid credential.
+  useEffect(() => {
+    const onAuthRequired = () => setShowAuth(true);
+    window.addEventListener("ro:auth-required", onAuthRequired);
+    return () => window.removeEventListener("ro:auth-required", onAuthRequired);
+  }, []);
   
   const handleNodeClick = (trace: ToolCallTrace) => {
     console.log("Node clicked:", trace);
@@ -120,6 +134,7 @@ function App() {
     { id: "sandbox", label: "Sandbox" },
     { id: "notifications", label: "Notify" },
     { id: "research", label: "Research" },
+    { id: "monitors", label: "Monitors" },
   ];
 
   const handleResearchSubmit = async (e: React.FormEvent) => {
@@ -151,6 +166,22 @@ function App() {
               <span style={{ fontFamily: "var(--font-mono)", fontSize: "12px", color: "var(--muted)" }}>
                 {backendConnected ? "Backend Connected" : "Using Fixtures"}
               </span>
+              {userEmail ? (
+                <button
+                  onClick={() => { clearSession(); setUserEmail(null); }}
+                  title="Sign out"
+                  style={{ fontFamily: "var(--font-mono)", fontSize: "12px", color: "var(--ink)", background: "none", border: "1px solid var(--muted)", padding: "4px 8px", cursor: "pointer" }}
+                >
+                  {userEmail} · sign out
+                </button>
+              ) : (
+                <button
+                  onClick={() => setShowAuth(true)}
+                  style={{ fontFamily: "var(--font-mono)", fontSize: "12px", color: "var(--bg)", background: "var(--ink)", border: "none", padding: "5px 10px", cursor: "pointer" }}
+                >
+                  Sign in
+                </button>
+              )}
             </div>
           </div>
 
@@ -472,6 +503,15 @@ function App() {
           </section>
         )}
 
+        {activeTab === "monitors" && (
+          <section>
+            <h2 style={{ fontFamily: "var(--font-sans)", fontSize: "18px", fontWeight: 600, marginBottom: 12 }}>
+              Monitored Claims
+            </h2>
+            <MonitorsPanel />
+          </section>
+        )}
+
         {activeTab === "research" && researchEvidence && (
           <section>
             <h2 style={{ fontFamily: "var(--font-sans)", fontSize: "18px", fontWeight: 600, marginBottom: 12 }}>
@@ -505,6 +545,12 @@ function App() {
           </section>
         )}
       </main>
+      {showAuth && (
+        <AuthPanel
+          onAuthed={(email) => { setUserEmail(email); setShowAuth(false); }}
+          onDismiss={() => setShowAuth(false)}
+        />
+      )}
     </>
   );
 }

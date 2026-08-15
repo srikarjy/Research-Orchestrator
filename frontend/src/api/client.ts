@@ -36,10 +36,22 @@ export const apiConfig = {
 };
 
 async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
+  // Attach the session token when one exists; read lazily (not imported from
+  // ./auth, which imports apiConfig from this module) to avoid a cycle.
+  const token = localStorage.getItem("ro.auth.token");
   const res = await fetch(url, {
-    headers: { "Content-Type": "application/json", ...options?.headers },
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...options?.headers,
+    },
     ...options,
   });
+  if (res.status === 401) {
+    // Tell the app shell a login is needed; keep throwing so callers still
+    // see the failure.
+    window.dispatchEvent(new CustomEvent("ro:auth-required"));
+  }
   if (!res.ok) {
     const text = await res.text();
     throw new Error(`API error: ${res.status} ${res.statusText} - ${text}`);
