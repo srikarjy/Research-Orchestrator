@@ -316,14 +316,21 @@ export const researchApi = {
    */
   debateResponseToEvidenceCard: (response: DebateResponse): EvidenceCard => {
     // Map sources to EvidenceSource format
-    const sources: EvidenceSource[] = response.sources.map((src) => ({
-      id: src.paper_id,
-      type: "paper" as const,
-      title: src.title,
-      ref_url: `https://pubmed.ncbi.nlm.nih.gov/${src.paper_id}/`,
-      stance: undefined, // Could be derived from transcript
-      payload: { pmid: src.paper_id, retrieval_id: src.paper_id }, // Using pmid as retrieval_id for now
-    }));
+    const sources: EvidenceSource[] = response.sources.map((src) => {
+      // Trial records carry NCT ids and live on ClinicalTrials.gov; papers
+      // carry PMIDs and live on PubMed.
+      const isTrial = src.paper_id.startsWith("NCT");
+      return {
+        id: src.paper_id,
+        type: "paper" as const,
+        title: src.title,
+        ref_url: isTrial
+          ? `https://clinicaltrials.gov/study/${src.paper_id}`
+          : `https://pubmed.ncbi.nlm.nih.gov/${src.paper_id}/`,
+        stance: undefined, // Could be derived from transcript
+        payload: { pmid: src.paper_id, retrieval_id: src.paper_id }, // Using pmid as retrieval_id for now
+      };
+    });
 
     // Map transcript to tool calls
     const toolCalls: ToolCallTrace[] = response.transcript.map((entry) => ({
