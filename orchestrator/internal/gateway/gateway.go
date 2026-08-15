@@ -17,6 +17,7 @@ import (
 	"github.com/srikarjy/research-orchestrator/orchestrator/internal/api"
 	"github.com/srikarjy/research-orchestrator/orchestrator/internal/auth"
 	"github.com/srikarjy/research-orchestrator/orchestrator/internal/kernel"
+	"github.com/srikarjy/research-orchestrator/orchestrator/internal/monitors"
 )
 
 var upgrader = websocket.Upgrader{
@@ -32,6 +33,8 @@ type Gateway struct {
 	aletheiaClient  *aletheia.Client
 	authMW          *auth.Middleware
 	authHandlers    *auth.Handlers
+	monitorHandlers *monitors.Handlers
+	stopMonitors    func()
 }
 
 func NewGateway(p *kernel.Platform) *Gateway {
@@ -60,6 +63,18 @@ func NewGateway(p *kernel.Platform) *Gateway {
 		}
 	} else {
 		p.Logger.Warn("AUTH UNAVAILABLE: no database — auth routes not mounted, /api/v1 is open")
+	}
+
+	if p.DB != nil && g.aletheiaClient != nil {
+		monStore, err := monitors.NewStore(context.Background(), p.DB)
+		if err != nil {
+			p.Logger.Fatal("monitors schema setup failed", zap.Error(err))
+		}
+		monService := monitors.NewService(monStore, g.aletheiaClient, p.Logger)
+		g.monitorHandlers = monitors.NewHandlers(monStore, monService, p.Logger)
+		// One scheduler tick per minute; each due monitor re-runs its claim
+		// through the same grounded path as an ad-hoc query.
+		g.stopMonitors = monService.Start(context.Background(), time.Minute)
 	}
 
 	g.setupMiddleware()
@@ -176,6 +191,23 @@ func (g *Gateway) setupRoutes() {
 		notifs := v1.Group("/notifications")
 		{
 			notifs.POST("/send", g.adaptSendNotification)
+		}
+
+		if g.monitorHandlers != nil {
+			mon := v1.Group("/monitors")
+			{
+				mon.POST("", g.monitorHandlers.Create)
+				mon.GET("", g.monitorHandlers.List)
+				mon.GET("/:id/history", g.monitorHandlers.History)
+				mon.DELETE("/:id", g.monitorHandlers.Delete)
+				// A manual check is a real Claude call — same budget-guarding
+				// limit as /api/v1/query.
+				if g.authMW != nil {
+					mon.POST("/:id/check", g.authMW.RateLimit("query", 10, time.Minute), g.monitorHandlers.CheckNow)
+				} else {
+					mon.POST("/:id/check", g.monitorHandlers.CheckNow)
+				}
+			}
 		}
 
 		// Aletheia query endpoint - the killer query. Tightest rate limit in
@@ -535,6 +567,9 @@ func (g *Gateway) Start() error {
 
 func (g *Gateway) Stop(ctx context.Context) error {
 	g.platform.Logger.Info("Stopping API Gateway...")
+	if g.stopMonitors != nil {
+		g.stopMonitors()
+	}
 	return g.server.Shutdown(ctx)
 }
 
