@@ -41,24 +41,15 @@ interface ConfidenceLadderProps {
 
 export function ConfidenceLadder({ evidence, compact = false }: ConfidenceLadderProps) {
   const signals = useMemo(() => {
-    if (!evidence) {
-      return SIGNAL_ORDER.map((key) => ({
-        key,
-        label: SIGNAL_LABELS[key],
-        shortLabel: SIGNAL_SHORT_LABELS[key],
-        tooltip: SIGNAL_TOOLTIPS[key],
-        value: 0,
-        color: SIGNAL_COLORS[key],
-        isLLM: key === "llm_rating",
-      }));
-    }
-    const s = evidence.confidence.signals;
+    const s = evidence?.confidence.signals;
     return SIGNAL_ORDER.map((key) => ({
       key,
       label: SIGNAL_LABELS[key],
       shortLabel: SIGNAL_SHORT_LABELS[key],
       tooltip: SIGNAL_TOOLTIPS[key],
-      value: s[key as SignalKey],
+      // null = no per-signal breakdown in this response; shown as a dash
+      // rather than a bar faked from the overall scalar.
+      value: s ? s[key as SignalKey] : null,
       color: SIGNAL_COLORS[key],
       isLLM: key === "llm_rating",
     }));
@@ -70,7 +61,7 @@ export function ConfidenceLadder({ evidence, compact = false }: ConfidenceLadder
     <aside
       className={`confidence-ladder ${compact ? "confidence-ladder--compact" : ""}`}
       role="img"
-      aria-label={`Confidence breakdown: ${signals.map((s) => `${s.label} ${Math.round(s.value * 100)}%`).join(", ")}. Overall ${Math.round(overall * 100)}%`}
+      aria-label={`Confidence breakdown: ${signals.map((s) => `${s.label} ${s.value === null ? "unavailable" : `${Math.round(s.value * 100)}%`}`).join(", ")}. Overall ${Math.round(overall * 100)}%`}
     >
       <div className="confidence-ladder__signals">
         {signals.map((signal) => (
@@ -79,7 +70,7 @@ export function ConfidenceLadder({ evidence, compact = false }: ConfidenceLadder
             className="confidence-ladder__signal"
             title={signal.tooltip}
             style={{
-              "--signal-height": `${signal.value * 100}%`,
+              "--signal-height": `${(signal.value ?? 0) * 100}%`,
               "--signal-color": signal.color,
             } as React.CSSProperties}
           >
@@ -88,7 +79,7 @@ export function ConfidenceLadder({ evidence, compact = false }: ConfidenceLadder
             </div>
             <div className="confidence-ladder__meta">
               <span className="confidence-ladder__short-label">{signal.shortLabel}</span>
-              <span className="confidence-ladder__value">{Math.round(signal.value * 100)}%</span>
+              <span className="confidence-ladder__value">{signal.value === null ? "—" : `${Math.round(signal.value * 100)}%`}</span>
             </div>
           </div>
         ))}

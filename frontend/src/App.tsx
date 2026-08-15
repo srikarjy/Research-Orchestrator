@@ -293,10 +293,16 @@ function App() {
                   Signal Breakdown
                 </h2>
                 <div style={{ fontFamily: "var(--font-mono)", fontSize: "12px", lineHeight: 2, color: "var(--ink)" }}>
-                  <div>Literature: <span style={{ color: "var(--signal)" }}>{Math.round(displayEvidence.confidence.signals.literature * 100)}%</span></div>
-                  <div>Protein Evidence: <span style={{ color: "var(--structural)" }}>{Math.round(displayEvidence.confidence.signals.protein_evidence * 100)}%</span></div>
-                  <div>Clinical Evidence: <span style={{ color: "var(--alert)" }}>{Math.round(displayEvidence.confidence.signals.clinical_evidence * 100)}%</span></div>
-                  <div>LLM Rating: <span style={{ color: "var(--muted)" }}>{Math.round(displayEvidence.confidence.signals.llm_rating * 100)}%</span></div>
+                  {displayEvidence.confidence.signals ? (
+                    <>
+                      <div>Literature: <span style={{ color: "var(--signal)" }}>{Math.round(displayEvidence.confidence.signals.literature * 100)}%</span></div>
+                      <div>Protein Evidence: <span style={{ color: "var(--structural)" }}>{Math.round(displayEvidence.confidence.signals.protein_evidence * 100)}%</span></div>
+                      <div>Clinical Evidence: <span style={{ color: "var(--alert)" }}>{Math.round(displayEvidence.confidence.signals.clinical_evidence * 100)}%</span></div>
+                      <div>LLM Rating: <span style={{ color: "var(--muted)" }}>{Math.round(displayEvidence.confidence.signals.llm_rating * 100)}%</span></div>
+                    </>
+                  ) : (
+                    <div style={{ color: "var(--muted)" }}>Per-signal breakdown unavailable for this response</div>
+                  )}
                   <div style={{ borderTop: "1px solid var(--muted)", paddingTop: 8, marginTop: 8, fontWeight: 600 }}>
                     Overall: <span style={{ color: "var(--signal)" }}>{Math.round(displayEvidence.confidence.overall * 100)}%</span>
                   </div>

@@ -46,6 +46,22 @@ func TestLive_RealAletheiaRoundTrip(t *testing.T) {
 	if len(result.Sources) == 0 {
 		t.Error("expected at least one Source")
 	}
-	t.Logf("verdict=%s confidence=%.2f sources=%d transcript_entries=%d",
-		result.Verdict, result.Confidence, len(result.Sources), len(result.Transcript))
+	// single_call (the default path this client hits) always returns a
+	// per-signal breakdown; a nil here means the wire contract drifted.
+	if result.SignalBreakdown == nil {
+		t.Error("expected a SignalBreakdown from the single_call path, got nil")
+	} else {
+		for name, v := range map[string]float64{
+			"literature":        result.SignalBreakdown.Literature,
+			"protein_evidence":  result.SignalBreakdown.ProteinEvidence,
+			"clinical_evidence": result.SignalBreakdown.ClinicalEvidence,
+			"llm_rating":        result.SignalBreakdown.LLMRating,
+		} {
+			if v < 0 || v > 1 {
+				t.Errorf("signal %s = %v out of [0,1]", name, v)
+			}
+		}
+	}
+	t.Logf("verdict=%s confidence=%.2f breakdown=%+v sources=%d transcript_entries=%d",
+		result.Verdict, result.Confidence, result.SignalBreakdown, len(result.Sources), len(result.Transcript))
 }

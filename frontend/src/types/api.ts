@@ -250,7 +250,10 @@ export interface EvidenceCard {
   claim: string;
   confidence: {
     overall: number;
-    signals: {
+    // Optional: present only when the response carried a real per-signal
+    // breakdown; when absent, components render "unavailable" rather than
+    // faking four values from `overall`.
+    signals?: {
       literature: number;
       protein_evidence: number;
       clinical_evidence: number;
@@ -272,6 +275,13 @@ export interface TimelineEvent {
 
 // ============ Aletheia Types ============
 
+export interface SignalBreakdown {
+  literature: number;
+  protein_evidence: number;
+  clinical_evidence: number;
+  llm_rating: number;
+}
+
 export interface DebateResponse {
   debate_id: string;
   claim: string;
@@ -279,6 +289,9 @@ export interface DebateResponse {
   verdict: "supported" | "refuted" | "unresolved";
   confidence: number;
   confidence_rationale: string;
+  // Absent from multi-agent responses; when missing, render "breakdown
+  // unavailable" -- never fabricate four values from the scalar confidence.
+  signal_breakdown?: SignalBreakdown | null;
   driving_provenance_ids: number[];
   transcript: TranscriptEntry[];
   sources: Source[];

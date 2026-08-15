@@ -28,22 +28,35 @@ type Source struct {
 }
 
 type TranscriptEntry struct {
-	Agent           string         `json:"agent"`
-	Action          string         `json:"action"`
-	Detail          map[string]any `json:"detail"`
-	SourcePaperID   *string        `json:"source_paper_id,omitempty"`
+	Agent         string         `json:"agent"`
+	Action        string         `json:"action"`
+	Detail        map[string]any `json:"detail"`
+	SourcePaperID *string        `json:"source_paper_id,omitempty"`
+}
+
+// SignalBreakdown carries single_call's per-evidence-type support scores,
+// each in [0,1]. Nil when the response predates the field or came from the
+// multi-agent path, which doesn't produce one -- consumers must render
+// "breakdown unavailable" in that case, never fabricate four values from
+// the scalar Confidence.
+type SignalBreakdown struct {
+	Literature       float64 `json:"literature"`
+	ProteinEvidence  float64 `json:"protein_evidence"`
+	ClinicalEvidence float64 `json:"clinical_evidence"`
+	LLMRating        float64 `json:"llm_rating"`
 }
 
 type DebateResponse struct {
-	DebateID               string            `json:"debate_id"`
-	Claim                  string            `json:"claim"`
-	Conclusion             string            `json:"conclusion"`
-	Verdict                string            `json:"verdict"`
-	Confidence             float64           `json:"confidence"`
-	ConfidenceRationale    string            `json:"confidence_rationale"`
-	DrivingProvenanceIDs   []int             `json:"driving_provenance_ids"`
-	Transcript             []TranscriptEntry `json:"transcript"`
-	Sources                []Source          `json:"sources"`
+	DebateID             string            `json:"debate_id"`
+	Claim                string            `json:"claim"`
+	Conclusion           string            `json:"conclusion"`
+	Verdict              string            `json:"verdict"`
+	Confidence           float64           `json:"confidence"`
+	ConfidenceRationale  string            `json:"confidence_rationale"`
+	SignalBreakdown      *SignalBreakdown  `json:"signal_breakdown,omitempty"`
+	DrivingProvenanceIDs []int             `json:"driving_provenance_ids"`
+	Transcript           []TranscriptEntry `json:"transcript"`
+	Sources              []Source          `json:"sources"`
 }
 
 func NewClient(baseURL string, logger *zap.Logger) *Client {

@@ -226,6 +226,13 @@ export const assayosApi = {
 
 // ============ Type Definitions for Aletheia/Orchestrator Query ============
 
+export interface SignalBreakdown {
+  literature: number;
+  protein_evidence: number;
+  clinical_evidence: number;
+  llm_rating: number;
+}
+
 export interface DebateResponse {
   debate_id: string;
   claim: string;
@@ -233,6 +240,9 @@ export interface DebateResponse {
   verdict: "supported" | "refuted" | "unresolved";
   confidence: number;
   confidence_rationale: string;
+  // Absent from multi-agent responses; when missing, components render the
+  // breakdown as unavailable -- never fabricated from the scalar confidence.
+  signal_breakdown?: SignalBreakdown | null;
   driving_provenance_ids: number[];
   transcript: TranscriptEntry[];
   sources: Source[];
@@ -324,17 +334,12 @@ export const researchApi = {
       retries: 0,
     }));
 
-    // For now, use overall confidence for all signals
-    // In future, Aletheia could return per-signal breakdown
-    const overall = response.confidence;
+    // Use the real per-signal breakdown when Aletheia returned one; leave
+    // signals undefined otherwise so components render "unavailable" instead
+    // of four identical bars faked from the scalar.
     const confidence = {
-      overall,
-      signals: {
-        literature: overall,
-        protein_evidence: overall,
-        clinical_evidence: overall,
-        llm_rating: overall,
-      },
+      overall: response.confidence,
+      signals: response.signal_breakdown ?? undefined,
     };
 
     return {

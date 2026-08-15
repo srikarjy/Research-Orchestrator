@@ -3,7 +3,10 @@ export type EvidenceCard = {
   claim: string;
   confidence: {
     overall: number; // 0-1
-    signals: {
+    // Optional: live single_call responses carry a real per-signal breakdown;
+    // when absent (e.g. multi-agent path), components must show the signals
+    // as unavailable rather than faking four bars from `overall`.
+    signals?: {
       literature: number;
       protein_evidence: number;
       clinical_evidence: number;

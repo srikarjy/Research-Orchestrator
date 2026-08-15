@@ -39,29 +39,31 @@ export function ConfidenceHeatmap({ evidence, compact = false }: ConfidenceHeatm
       key,
       label: SIGNAL_LABELS[key],
       tooltip: SIGNAL_TOOLTIPS[key],
-      value: s[key as SignalKey],
+      // null = breakdown unavailable for this response; rendered as a dash,
+      // never as a value derived from the overall scalar.
+      value: s ? s[key as SignalKey] : null,
       color: SIGNAL_COLORS[key],
       isLLM: key === "llm_rating",
     }));
   }, [evidence.confidence.signals]);
 
-  const maxVal = Math.max(...signals.map((s) => s.value));
+  const maxVal = Math.max(...signals.map((s) => s.value ?? 0));
 
   return (
-    <div className={`confidence-heatmap ${compact ? "confidence-heatmap--compact" : ""}`} role="img" aria-label={`Confidence breakdown: ${signals.map(s => `${s.label} ${Math.round(s.value*100)}%`).join(", ")}`}>
+    <div className={`confidence-heatmap ${compact ? "confidence-heatmap--compact" : ""}`} role="img" aria-label={`Confidence breakdown: ${signals.map(s => `${s.label} ${s.value === null ? "unavailable" : `${Math.round(s.value * 100)}%`}`).join(", ")}`}>
       {signals.map((signal) => (
         <div key={signal.key} className="confidence-heatmap__row">
           <div className="confidence-heatmap__label" title={signal.tooltip}>
             <span className="confidence-heatmap__name">{signal.label}</span>
             <span className={`confidence-heatmap__value ${signal.isLLM ? "confidence-heatmap__value--llm" : ""}`}>
-              {Math.round(signal.value * 100)}%
+              {signal.value === null ? "—" : `${Math.round(signal.value * 100)}%`}
             </span>
           </div>
-          <div className="confidence-heatmap__bar-track" role="progressbar" aria-valuenow={Math.round(signal.value * 100)} aria-valuemin={0} aria-valuemax={100} aria-label={signal.label}>
+          <div className="confidence-heatmap__bar-track" role="progressbar" aria-valuenow={Math.round((signal.value ?? 0) * 100)} aria-valuemin={0} aria-valuemax={100} aria-label={signal.label}>
             <div
               className={`confidence-heatmap__bar ${signal.isLLM ? "confidence-heatmap__bar--llm" : ""}`}
               style={{
-                width: `${(signal.value / maxVal) * 100}%`,
+                width: signal.value === null || maxVal === 0 ? "0%" : `${(signal.value / maxVal) * 100}%`,
                 backgroundColor: signal.color,
               } as React.CSSProperties}
             />
