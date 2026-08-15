@@ -15,6 +15,7 @@ import (
 
 	"github.com/srikarjy/research-orchestrator/orchestrator/internal/aletheia"
 	"github.com/srikarjy/research-orchestrator/orchestrator/internal/api"
+	"github.com/srikarjy/research-orchestrator/orchestrator/internal/auth"
 	"github.com/srikarjy/research-orchestrator/orchestrator/internal/kernel"
 )
 
@@ -29,6 +30,8 @@ type Gateway struct {
 	workflowHandler api.WorkflowEngineService
 	biolabHandler   api.BiolabMCPService
 	aletheiaClient  *aletheia.Client
+	authMW          *auth.Middleware
+	authHandlers    *auth.Handlers
 }
 
 func NewGateway(p *kernel.Platform) *Gateway {
@@ -41,6 +44,22 @@ func NewGateway(p *kernel.Platform) *Gateway {
 		workflowHandler: p.WorkflowEngine,
 		biolabHandler:   p.BiolabMCP,
 		aletheiaClient:  p.Aletheia,
+	}
+
+	if p.DB != nil {
+		store, err := auth.NewStore(context.Background(), p.DB)
+		if err != nil {
+			// A gateway that can't set up its auth tables must not start
+			// half-open: fail loudly instead of serving unprotected routes.
+			p.Logger.Fatal("auth schema setup failed", zap.Error(err))
+		}
+		g.authMW = auth.NewMiddleware(p.Config.AuthJWTSecret, store, p.Redis, p.Logger)
+		g.authHandlers = auth.NewHandlers(p.Config.AuthJWTSecret, store, p.Logger)
+		if !g.authMW.Enabled() {
+			p.Logger.Warn("AUTH DISABLED: AUTH_JWT_SECRET is not set — every /api/v1 route is open. Set ORCH_AUTH_JWT_SECRET before deploying anywhere reachable.")
+		}
+	} else {
+		p.Logger.Warn("AUTH UNAVAILABLE: no database — auth routes not mounted, /api/v1 is open")
 	}
 
 	g.setupMiddleware()
@@ -91,6 +110,26 @@ func (g *Gateway) setupRoutes() {
 
 	v1 := g.router.Group("/api/v1")
 	{
+		// Auth endpoints. Registration and login are the only unauthenticated
+		// POSTs, and both are IP-rate-limited so they can't be used for
+		// credential stuffing or account spam. Everything else under /api/v1
+		// requires a JWT or API key once AUTH_JWT_SECRET is set (empty =
+		// local dev, middleware passes through; see internal/auth).
+		if g.authHandlers != nil {
+			authGroup := v1.Group("/auth")
+			{
+				authGroup.POST("/register", g.authMW.RateLimit("auth", 10, time.Minute), g.authHandlers.Register)
+				authGroup.POST("/login", g.authMW.RateLimit("auth", 10, time.Minute), g.authHandlers.Login)
+
+				keys := authGroup.Group("/keys", g.authMW.Require())
+				{
+					keys.POST("", g.authHandlers.CreateKey)
+					keys.GET("", g.authHandlers.ListKeys)
+					keys.DELETE("/:id", g.authHandlers.RevokeKey)
+				}
+			}
+			v1.Use(g.authMW.Require())
+		}
 		if g.platform.Config.WorkflowsEnabled {
 			wf := v1.Group("/workflows")
 			{
@@ -139,10 +178,17 @@ func (g *Gateway) setupRoutes() {
 			notifs.POST("/send", g.adaptSendNotification)
 		}
 
-		// Aletheia query endpoint - the killer query
+		// Aletheia query endpoint - the killer query. Tightest rate limit in
+		// the gateway: every request here is a real retrieval plus a real
+		// Claude call (~$0.014), so this is the endpoint that can drain an
+		// API key budget if left open.
 		query := v1.Group("/query")
 		{
-			query.POST("", g.adaptAletheiaQuery)
+			if g.authMW != nil {
+				query.POST("", g.authMW.RateLimit("query", 10, time.Minute), g.adaptAletheiaQuery)
+			} else {
+				query.POST("", g.adaptAletheiaQuery)
+			}
 		}
 	}
 

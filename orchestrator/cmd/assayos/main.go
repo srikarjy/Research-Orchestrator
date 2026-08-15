@@ -67,6 +67,10 @@ func runServer(cmd *cobra.Command, args []string) error {
 	if v := viper.GetString("workflow_engine_group"); v != "" {
 		cfg.WorkflowEngine.Group = v
 	}
+	// ORCH_AUTH_JWT_SECRET — empty leaves auth disabled (see kernel.Config).
+	if v := viper.GetString("auth_jwt_secret"); v != "" {
+		cfg.AuthJWTSecret = v
+	}
 	
 	// Override from config file if provided
 	if cfgFile := viper.GetString("config"); cfgFile != "" {

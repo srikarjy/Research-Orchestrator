@@ -54,6 +54,11 @@ type Config struct {
 	BiolabMCPURL     string `mapstructure:"BIOLAB_MCP_URL" default:"http://localhost:8081"`
 	AletheiaURL      string `mapstructure:"ALETHEIA_URL" default:"http://localhost:8000"`
 
+	// AuthJWTSecret enables authentication when non-empty: the gateway then
+	// requires a JWT or API key on protected routes. Empty = auth disabled
+	// (local dev), logged prominently at startup. Deployments MUST set it.
+	AuthJWTSecret string `mapstructure:"AUTH_JWT_SECRET" default:""`
+
 	// WorkflowEngine points at the standalone srikarjy/workflow-Engine
 	// service's own Postgres + the Redis Stream its worker pool consumes.
 	// Not the same Postgres/Redis as Database/Redis above until the two
